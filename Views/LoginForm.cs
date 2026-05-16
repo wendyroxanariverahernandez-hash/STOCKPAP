@@ -11,17 +11,45 @@ namespace STOCKPAP.Views
         {
             InitializeComponent();
             btnLogin.Click += BtnLogin_Click;
+            txtPass.PasswordChar = '\0'; // Show text initially for placeholder
+        }
 
-            // Make the panel rounded visually using Paint event
-            pnlCard.Paint += (s, e) =>
+        private void txtUser_Enter(object sender, EventArgs e)
+        {
+            if (txtUser.Text == "Usuario")
             {
-                var rect = pnlCard.ClientRectangle;
-                rect.Width -= 1; rect.Height -= 1;
-                using (var pen = new Pen(Color.FromArgb(230, 230, 230), 1))
-                {
-                    e.Graphics.DrawRectangle(pen, rect);
-                }
-            };
+                txtUser.Text = "";
+                txtUser.ForeColor = Color.White;
+            }
+        }
+
+        private void txtUser_Leave(object sender, EventArgs e)
+        {
+            if (string.IsNullOrWhiteSpace(txtUser.Text))
+            {
+                txtUser.Text = "Usuario";
+                txtUser.ForeColor = Color.LightGray;
+            }
+        }
+
+        private void txtPass_Enter(object sender, EventArgs e)
+        {
+            if (txtPass.Text == "Contraseña")
+            {
+                txtPass.Text = "";
+                txtPass.ForeColor = Color.White;
+                txtPass.PasswordChar = '*';
+            }
+        }
+
+        private void txtPass_Leave(object sender, EventArgs e)
+        {
+            if (string.IsNullOrWhiteSpace(txtPass.Text))
+            {
+                txtPass.Text = "Contraseña";
+                txtPass.ForeColor = Color.LightGray;
+                txtPass.PasswordChar = '\0';
+            }
         }
 
         private void BtnLogin_Click(object sender, EventArgs e)

@@ -31,7 +31,6 @@ namespace STOCKPAP
             {
                 btnInventory.Visible = false;
                 btnSuppliers.Visible = false;
-                btnCustomers.Visible = false;
                 btnStaff.Visible = false;
                 btnSettings.Visible = false;
                 btnDashboard.Visible = false;
@@ -52,7 +51,6 @@ namespace STOCKPAP
             btnInventory.Click += (s, e) => ShowInventory();
             btnSales.Click += (s, e) => ShowSales();
             btnSuppliers.Click += (s, e) => ShowSuppliers();
-            btnCustomers.Click += (s, e) => ShowCustomers();
             
             // Placeholders for other buttons
             btnStaff.Click += (s, e) => ShowPlaceholder("Personal", btnStaff);
@@ -121,12 +119,6 @@ namespace STOCKPAP
             SetView(view, "Proveedores", btnSuppliers);
         }
 
-        private void ShowCustomers()
-        {
-            var view = new CustomersControl();
-            new ClientePresenter(view);
-            SetView(view, "Clientes", btnCustomers);
-        }
 
         private void ShowPlaceholder(string title, Button btn)
         {

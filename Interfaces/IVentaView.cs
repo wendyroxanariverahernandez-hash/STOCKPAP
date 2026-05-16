@@ -7,11 +7,18 @@ namespace STOCKPAP.Interfaces
     public interface IVentaView
     {
         string VentaId { get; set; }
-        string Cliente { get; set; }
         string Producto { get; set; }
         string Cantidad { get; set; }
         string Total { get; set; }
         string MetodoPago { get; set; }
+        
+        string CantidadRecibida { get; set; }
+        string Cambio { get; set; }
+        string TipoTarjeta { get; set; }
+        string Banco { get; set; }
+        string Ultimos4 { get; set; }
+        string Referencia { get; set; }
+        bool Confirmacion { get; set; }
 
         string SearchValue { get; set; }
         bool IsSuccessful { get; set; }

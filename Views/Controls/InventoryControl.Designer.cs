@@ -177,7 +177,7 @@ namespace STOCKPAP.Views.Controls
             this.pnlDetail.Controls.Add(this.lblPrecioVenta);
             this.pnlDetail.Controls.Add(this.txtPrecioCompra);
             this.pnlDetail.Controls.Add(this.lblPrecioCompra);
-            this.pnlDetail.Controls.Add(this.txtCategoria);
+            this.pnlDetail.Controls.Add(this.cmbCategoria);
             this.pnlDetail.Controls.Add(this.lblCategoria);
             this.pnlDetail.Controls.Add(this.txtNombre);
             this.pnlDetail.Controls.Add(this.lblNombre);
@@ -261,12 +261,16 @@ namespace STOCKPAP.Views.Controls
             this.lblPrecioCompra.TabIndex = 6;
             this.lblPrecioCompra.Text = "Precio Compra:";
             // 
-            // txtCategoria
+            // cmbCategoria
             // 
-            this.txtCategoria.Location = new System.Drawing.Point(30, 130);
-            this.txtCategoria.Name = "txtCategoria";
-            this.txtCategoria.Size = new System.Drawing.Size(210, 23);
-            this.txtCategoria.TabIndex = 5;
+            this.cmbCategoria.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
+            this.cmbCategoria.FormattingEnabled = true;
+            this.cmbCategoria.Items.AddRange(new object[] {
+            "cuadernos y libretas", "escritura", "papel", "arte y dibujo", "oficina", "tecnologia", "impresion y copias", "escolares", "decoracion y regalos"});
+            this.cmbCategoria.Location = new System.Drawing.Point(30, 130);
+            this.cmbCategoria.Name = "cmbCategoria";
+            this.cmbCategoria.Size = new System.Drawing.Size(210, 23);
+            this.cmbCategoria.TabIndex = 5;
             // 
             // lblCategoria
             // 
@@ -351,7 +355,7 @@ namespace STOCKPAP.Views.Controls
         private System.Windows.Forms.Label lblPrecioVenta;
         private System.Windows.Forms.TextBox txtPrecioCompra;
         private System.Windows.Forms.Label lblPrecioCompra;
-        private System.Windows.Forms.TextBox txtCategoria;
+        private System.Windows.Forms.ComboBox cmbCategoria;
         private System.Windows.Forms.Label lblCategoria;
         private System.Windows.Forms.TextBox txtNombre;
         private System.Windows.Forms.Label lblNombre;

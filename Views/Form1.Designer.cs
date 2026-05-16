@@ -49,7 +49,6 @@ namespace STOCKPAP
             this.pnlSidebar.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(33)))), ((int)(((byte)(37)))), ((int)(((byte)(41)))));
             this.pnlSidebar.Controls.Add(this.btnSettings);
             this.pnlSidebar.Controls.Add(this.btnStaff);
-            this.pnlSidebar.Controls.Add(this.btnCustomers);
             this.pnlSidebar.Controls.Add(this.btnSales);
             this.pnlSidebar.Controls.Add(this.btnSuppliers);
             this.pnlSidebar.Controls.Add(this.btnInventory);
@@ -132,20 +131,6 @@ namespace STOCKPAP
             this.btnSales.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
             this.btnSales.UseVisualStyleBackColor = true;
             // 
-            // btnCustomers
-            // 
-            this.btnCustomers.FlatAppearance.BorderSize = 0;
-            this.btnCustomers.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
-            this.btnCustomers.Font = new System.Drawing.Font("Segoe UI", 11F);
-            this.btnCustomers.ForeColor = System.Drawing.Color.LightGray;
-            this.btnCustomers.Location = new System.Drawing.Point(0, 260);
-            this.btnCustomers.Name = "btnCustomers";
-            this.btnCustomers.Padding = new System.Windows.Forms.Padding(20, 0, 0, 0);
-            this.btnCustomers.Size = new System.Drawing.Size(220, 45);
-            this.btnCustomers.TabIndex = 5;
-            this.btnCustomers.Text = "Clientes";
-            this.btnCustomers.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
-            this.btnCustomers.UseVisualStyleBackColor = true;
             // 
             // btnStaff
             // 
@@ -158,7 +143,7 @@ namespace STOCKPAP
             this.btnStaff.Padding = new System.Windows.Forms.Padding(20, 0, 0, 0);
             this.btnStaff.Size = new System.Drawing.Size(220, 45);
             this.btnStaff.TabIndex = 6;
-            this.btnStaff.Text = "Personal";
+            this.btnStaff.Text = "Usuarios";
             this.btnStaff.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
             this.btnStaff.UseVisualStyleBackColor = true;
             // 
@@ -235,7 +220,6 @@ namespace STOCKPAP
         private System.Windows.Forms.Button btnInventory;
         private System.Windows.Forms.Button btnSuppliers;
         private System.Windows.Forms.Button btnSales;
-        private System.Windows.Forms.Button btnCustomers;
         private System.Windows.Forms.Button btnStaff;
         private System.Windows.Forms.Button btnSettings;
         private System.Windows.Forms.Panel pnlHeader;

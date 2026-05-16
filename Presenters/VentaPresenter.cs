@@ -38,8 +38,16 @@ namespace STOCKPAP.Presenters
             {
                 var model = new Venta();
                 model.Fecha = DateTime.Now;
-                model.Cliente = view.Cliente;
+                // Cliente is now hardcoded in the DAO or ignored, but let's just not set it from view
                 model.MetodoPago = view.MetodoPago;
+                
+                if (decimal.TryParse(view.CantidadRecibida, out decimal cr)) model.CantidadRecibida = cr;
+                if (decimal.TryParse(view.Cambio, out decimal cb)) model.Cambio = cb;
+                model.TipoTarjeta = view.TipoTarjeta;
+                model.Banco = view.Banco;
+                model.Ultimos4 = view.Ultimos4;
+                model.Referencia = view.Referencia;
+                model.Confirmacion = view.Confirmacion;
                 
                 // Simulación cálculo de precio temporal si no viene el Total real
                 decimal pricePerUnit = 25.00m; 
@@ -69,11 +77,17 @@ namespace STOCKPAP.Presenters
         private void CleanViewFields()
         {
             view.VentaId = "0";
-            view.Cliente = "";
             view.Producto = "";
             view.Cantidad = "0";
             view.Total = "0";
             view.MetodoPago = "";
+            view.CantidadRecibida = "";
+            view.Cambio = "";
+            view.TipoTarjeta = "";
+            view.Banco = "";
+            view.Ultimos4 = "";
+            view.Referencia = "";
+            view.Confirmacion = false;
         }
     }
 }

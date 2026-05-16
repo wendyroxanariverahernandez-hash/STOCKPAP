@@ -70,7 +70,7 @@ namespace STOCKPAP.Views.Controls
         // Properties
         public string ProdId { get => txtId.Text; set => txtId.Text = value; }
         public string Nombre { get => txtNombre.Text; set => txtNombre.Text = value; }
-        public string Categoria { get => txtCategoria.Text; set => txtCategoria.Text = value; }
+        public string Categoria { get => cmbCategoria.Text; set => cmbCategoria.Text = value; }
         public string PrecioCompra { get => txtPrecioCompra.Text; set => txtPrecioCompra.Text = value; }
         public string PrecioVenta { get => txtPrecioVenta.Text; set => txtPrecioVenta.Text = value; }
         public string Stock { get => txtStock.Text; set => txtStock.Text = value; }
