@@ -4,26 +4,23 @@ using System.Linq;
 using System.Windows.Forms;
 using STOCKPAP.Models;
 using STOCKPAP.Interfaces;
+using STOCKPAP.DataAccess;
 
 namespace STOCKPAP.Presenters
 {
     public class ProductoPresenter
     {
         private IProductoView view;
-        private List<Producto> productoList;
-        private BindingSource productoBindingSource;
+        private BindingSource bindingSource;
+        private ProductoDAO dao;
 
         public ProductoPresenter(IProductoView view)
         {
             this.view = view;
-            this.productoBindingSource = new BindingSource();
-            this.productoList = new List<Producto>
-            {
-                new Producto { Id = 1, Nombre = "Cuaderno Profesional", Categoria = "Escolar", PrecioCompra = 15.00m, PrecioVenta = 25.00m, Stock = 150 },
-                new Producto { Id = 2, Nombre = "Lápiz Mirado No. 2", Categoria = "Escolar", PrecioCompra = 2.00m, PrecioVenta = 5.00m, Stock = 500 }
-            };
+            this.bindingSource = new BindingSource();
+            this.dao = new ProductoDAO();
 
-            // Associate events
+            // Asociar eventos
             this.view.SearchEvent += SearchProducto;
             this.view.AddNewEvent += AddNewProducto;
             this.view.EditEvent += LoadSelectedProductoToEdit;
@@ -32,21 +29,23 @@ namespace STOCKPAP.Presenters
             this.view.CancelEvent += CancelAction;
 
             // Set binding source
-            this.view.SetProductoListBindingSource(productoBindingSource);
+            this.view.SetProductoListBindingSource(bindingSource);
             LoadAllProductoList();
         }
 
         private void LoadAllProductoList()
         {
-            productoBindingSource.DataSource = productoList;
+            bindingSource.DataSource = dao.GetAll();
         }
 
         private void SearchProducto(object sender, EventArgs e)
         {
             bool emptyValue = string.IsNullOrWhiteSpace(this.view.SearchValue);
-            if (emptyValue == false)
-                productoBindingSource.DataSource = productoList.Where(p => p.Nombre.ToLower().Contains(this.view.SearchValue.ToLower())).ToList();
-            else productoBindingSource.DataSource = productoList;
+            var list = dao.GetAll();
+            if (!emptyValue)
+                bindingSource.DataSource = list.Where(p => p.Nombre.ToLower().Contains(this.view.SearchValue.ToLower())).ToList();
+            else 
+                bindingSource.DataSource = list;
         }
 
         private void AddNewProducto(object sender, EventArgs e)
@@ -57,7 +56,7 @@ namespace STOCKPAP.Presenters
 
         private void LoadSelectedProductoToEdit(object sender, EventArgs e)
         {
-            var producto = (Producto)productoBindingSource.Current;
+            var producto = (Producto)bindingSource.Current;
             if (producto != null)
             {
                 view.ProdId = producto.Id.ToString();
@@ -84,21 +83,12 @@ namespace STOCKPAP.Presenters
 
                 if (view.IsEdit)
                 {
-                    var existing = productoList.FirstOrDefault(p => p.Id == model.Id);
-                    if (existing != null)
-                    {
-                        existing.Nombre = model.Nombre;
-                        existing.Categoria = model.Categoria;
-                        existing.PrecioCompra = model.PrecioCompra;
-                        existing.PrecioVenta = model.PrecioVenta;
-                        existing.Stock = model.Stock;
-                    }
+                    dao.Update(model);
                     view.Message = "Producto editado correctamente";
                 }
                 else
                 {
-                    model.Id = productoList.Count > 0 ? productoList.Max(p => p.Id) + 1 : 1;
-                    productoList.Add(model);
+                    dao.Add(model);
                     view.Message = "Producto agregado correctamente";
                 }
                 view.IsSuccessful = true;
@@ -116,19 +106,19 @@ namespace STOCKPAP.Presenters
         {
             try
             {
-                var producto = (Producto)productoBindingSource.Current;
+                var producto = (Producto)bindingSource.Current;
                 if (producto != null)
                 {
-                    productoList.Remove(producto);
+                    dao.Delete(producto.Id);
                     view.IsSuccessful = true;
                     view.Message = "Producto eliminado correctamente";
                     LoadAllProductoList();
                 }
             }
-            catch (Exception)
+            catch (Exception ex)
             {
                 view.IsSuccessful = false;
-                view.Message = "An error ocurred, could not delete producto";
+                view.Message = "Ocurrió un error: " + ex.Message;
             }
         }
 

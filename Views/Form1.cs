@@ -3,6 +3,7 @@ using System.Drawing;
 using System.Windows.Forms;
 using STOCKPAP.Views.Controls;
 using STOCKPAP.Presenters;
+using STOCKPAP.Utilities;
 
 namespace STOCKPAP
 {
@@ -11,18 +12,43 @@ namespace STOCKPAP
         private Button currentBtn;
         private UserControl currentView;
 
-        public Form1()
+        private string userRole;
+
+        public Form1(string role)
         {
             InitializeComponent();
             this.DoubleBuffered = true;
             this.Padding = new Padding(0);
+            this.userRole = role;
+            UITheme.ApplyTheme(this);
             SetupNavigation();
-            ShowDashboard();
+            ApplyRoleRestrictions();
+        }
+
+        private void ApplyRoleRestrictions()
+        {
+            if (userRole == "cajero")
+            {
+                btnInventory.Visible = false;
+                btnSuppliers.Visible = false;
+                btnCustomers.Visible = false;
+                btnStaff.Visible = false;
+                btnSettings.Visible = false;
+                btnDashboard.Visible = false;
+
+                lblTitle.Text = "Cajero - Registro de Ventas";
+                ShowSales();
+            }
+            else
+            {
+                btnDashboard.Visible = false; // Como pediste, quitamos el dashboard
+                ShowInventory();
+            }
         }
 
         private void SetupNavigation()
         {
-            btnDashboard.Click += (s, e) => ShowDashboard();
+            // Dashboard removed
             btnInventory.Click += (s, e) => ShowInventory();
             btnSales.Click += (s, e) => ShowSales();
             btnSuppliers.Click += (s, e) => ShowSuppliers();
@@ -74,12 +100,6 @@ namespace STOCKPAP
             ActivateButton(btn);
         }
 
-        private void ShowDashboard()
-        {
-            var view = new DashboardControl();
-            SetView(view, "Dashboard", btnDashboard);
-        }
-
         private void ShowInventory()
         {
             var view = new InventoryControl();
@@ -97,12 +117,14 @@ namespace STOCKPAP
         private void ShowSuppliers()
         {
             var view = new SuppliersControl();
+            new ProveedorPresenter(view);
             SetView(view, "Proveedores", btnSuppliers);
         }
 
         private void ShowCustomers()
         {
             var view = new CustomersControl();
+            new ClientePresenter(view);
             SetView(view, "Clientes", btnCustomers);
         }
 

@@ -4,34 +4,32 @@ using System.Linq;
 using System.Windows.Forms;
 using STOCKPAP.Models;
 using STOCKPAP.Interfaces;
+using STOCKPAP.DataAccess;
 
 namespace STOCKPAP.Presenters
 {
     public class VentaPresenter
     {
         private IVentaView view;
-        private List<Venta> ventaList;
-        private BindingSource ventaBindingSource;
+        private BindingSource bindingSource;
+        private VentaDAO dao;
 
         public VentaPresenter(IVentaView view)
         {
             this.view = view;
-            this.ventaBindingSource = new BindingSource();
-            this.ventaList = new List<Venta>
-            {
-                new Venta { Id = 1001, Fecha = DateTime.Now, Cliente = "Ana López", Total = 450.00m, MetodoPago = "Efectivo" }
-            };
+            this.bindingSource = new BindingSource();
+            this.dao = new VentaDAO();
 
-            this.view.AddNewEvent += (s, e) => { /* Reset fields if needed */ };
+            this.view.AddNewEvent += (s, e) => { CleanViewFields(); };
             this.view.SaveEvent += SaveVenta;
             
-            this.view.SetVentaListBindingSource(ventaBindingSource);
+            this.view.SetVentaListBindingSource(bindingSource);
             LoadAllVentaList();
         }
 
         private void LoadAllVentaList()
         {
-            ventaBindingSource.DataSource = ventaList;
+            bindingSource.DataSource = dao.GetAll();
         }
 
         private void SaveVenta(object sender, EventArgs e)
@@ -39,25 +37,43 @@ namespace STOCKPAP.Presenters
             try
             {
                 var model = new Venta();
-                model.Id = ventaList.Count > 0 ? ventaList.Max(v => v.Id) + 1 : 1001;
                 model.Fecha = DateTime.Now;
                 model.Cliente = view.Cliente;
                 model.MetodoPago = view.MetodoPago;
                 
-                // For simplicity, we'll just use a mock price calculation
+                // Simulación cálculo de precio temporal si no viene el Total real
                 decimal pricePerUnit = 25.00m; 
-                model.Total = Convert.ToInt32(view.Cantidad) * pricePerUnit;
+                if (int.TryParse(view.Cantidad, out int cantidad))
+                {
+                    model.Total = cantidad * pricePerUnit;
+                }
+                else if (decimal.TryParse(view.Total, out decimal total))
+                {
+                    model.Total = total;
+                }
 
-                ventaList.Add(model);
+                dao.Add(model);
+
                 view.IsSuccessful = true;
                 view.Message = "Venta registrada con éxito";
                 LoadAllVentaList();
+                CleanViewFields();
             }
             catch (Exception ex)
             {
                 view.IsSuccessful = false;
                 view.Message = ex.Message;
             }
+        }
+        
+        private void CleanViewFields()
+        {
+            view.VentaId = "0";
+            view.Cliente = "";
+            view.Producto = "";
+            view.Cantidad = "0";
+            view.Total = "0";
+            view.MetodoPago = "";
         }
     }
 }

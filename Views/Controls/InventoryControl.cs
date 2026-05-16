@@ -1,6 +1,7 @@
 using System;
 using System.Windows.Forms;
 using STOCKPAP.Interfaces;
+using STOCKPAP.Utilities;
 
 namespace STOCKPAP.Views.Controls
 {
@@ -13,6 +14,7 @@ namespace STOCKPAP.Views.Controls
         public InventoryControl()
         {
             InitializeComponent();
+            UITheme.ApplyTheme(this);
             AssociateAndRaiseViewEvents();
             tabControl.TabPages.Remove(tabDetail);
         }
