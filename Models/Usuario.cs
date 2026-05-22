@@ -1,5 +1,3 @@
-using System;
-
 namespace STOCKPAP.Models
 {
     public class Usuario

@@ -2,81 +2,128 @@ using System;
 using System.Drawing;
 using System.Windows.Forms;
 using STOCKPAP.Utilities;
+using STOCKPAP.DataAccess;
 
 namespace STOCKPAP.Views
 {
-    public partial class LoginForm : Form
+    public class LoginForm : Form
     {
+        private TextBox txtUsername;
+        private TextBox txtPassword;
+        private RoundedButton btnLogin;
+        private Label lblError;
+        private RoundedPanel panelLogin;
+
         public LoginForm()
         {
             InitializeComponent();
+        }
+
+        private void InitializeComponent()
+        {
+            this.Text = "StockPap - Iniciar Sesión";
+            this.Size = new Size(400, 500);
+            this.StartPosition = FormStartPosition.CenterScreen;
+            this.FormBorderStyle = FormBorderStyle.FixedSingle;
+            this.MaximizeBox = false;
+            this.BackColor = Color.FromArgb(240, 244, 248);
+
+            panelLogin = new RoundedPanel
+            {
+                Size = new Size(320, 380),
+                Location = new Point(32, 40),
+                BackColor = Color.White,
+                BorderRadius = 20
+            };
+            this.Controls.Add(panelLogin);
+
+            Label lblTitle = new Label
+            {
+                Text = "StockPap",
+                Font = new Font("Segoe UI", 24, FontStyle.Bold),
+                ForeColor = Color.FromArgb(30, 96, 255),
+                AutoSize = true,
+                Location = new Point(80, 40)
+            };
+            panelLogin.Controls.Add(lblTitle);
+
+            Label lblSubtitle = new Label
+            {
+                Text = "Sistema de Inventario",
+                Font = new Font("Segoe UI", 10, FontStyle.Regular),
+                ForeColor = Color.Gray,
+                AutoSize = true,
+                Location = new Point(90, 85)
+            };
+            panelLogin.Controls.Add(lblSubtitle);
+
+            txtUsername = new TextBox
+            {
+                Location = new Point(40, 150),
+                Size = new Size(240, 30),
+                Font = new Font("Segoe UI", 12),
+                Text = "Usuario",
+                ForeColor = Color.Gray
+            };
+            txtUsername.Enter += (s, e) => { if (txtUsername.Text == "Usuario") { txtUsername.Text = ""; txtUsername.ForeColor = Color.Black; } };
+            txtUsername.Leave += (s, e) => { if (string.IsNullOrWhiteSpace(txtUsername.Text)) { txtUsername.Text = "Usuario"; txtUsername.ForeColor = Color.Gray; } };
+            panelLogin.Controls.Add(txtUsername);
+
+            txtPassword = new TextBox
+            {
+                Location = new Point(40, 200),
+                Size = new Size(240, 30),
+                Font = new Font("Segoe UI", 12),
+                Text = "Contraseña",
+                ForeColor = Color.Gray
+            };
+            txtPassword.Enter += (s, e) => { if (txtPassword.Text == "Contraseña") { txtPassword.Text = ""; txtPassword.ForeColor = Color.Black; txtPassword.PasswordChar = '*'; } };
+            txtPassword.Leave += (s, e) => { if (string.IsNullOrWhiteSpace(txtPassword.Text)) { txtPassword.Text = "Contraseña"; txtPassword.ForeColor = Color.Gray; txtPassword.PasswordChar = '\0'; } };
+            panelLogin.Controls.Add(txtPassword);
+
+            lblError = new Label
+            {
+                Location = new Point(40, 240),
+                Size = new Size(240, 20),
+                ForeColor = Color.Red,
+                Font = new Font("Segoe UI", 9),
+                TextAlign = ContentAlignment.MiddleCenter
+            };
+            panelLogin.Controls.Add(lblError);
+
+            btnLogin = new RoundedButton
+            {
+                Text = "Ingresar",
+                Size = new Size(240, 45),
+                Location = new Point(40, 280),
+                BackColor = Color.FromArgb(30, 96, 255),
+                ForeColor = Color.White,
+                Font = new Font("Segoe UI", 12, FontStyle.Bold),
+                BorderRadius = 10
+            };
             btnLogin.Click += BtnLogin_Click;
-            txtPass.PasswordChar = '\0'; // Show text initially for placeholder
-        }
-
-        private void txtUser_Enter(object sender, EventArgs e)
-        {
-            if (txtUser.Text == "Usuario")
-            {
-                txtUser.Text = "";
-                txtUser.ForeColor = Color.White;
-            }
-        }
-
-        private void txtUser_Leave(object sender, EventArgs e)
-        {
-            if (string.IsNullOrWhiteSpace(txtUser.Text))
-            {
-                txtUser.Text = "Usuario";
-                txtUser.ForeColor = Color.LightGray;
-            }
-        }
-
-        private void txtPass_Enter(object sender, EventArgs e)
-        {
-            if (txtPass.Text == "Contraseña")
-            {
-                txtPass.Text = "";
-                txtPass.ForeColor = Color.White;
-                txtPass.PasswordChar = '*';
-            }
-        }
-
-        private void txtPass_Leave(object sender, EventArgs e)
-        {
-            if (string.IsNullOrWhiteSpace(txtPass.Text))
-            {
-                txtPass.Text = "Contraseña";
-                txtPass.ForeColor = Color.LightGray;
-                txtPass.PasswordChar = '\0';
-            }
+            panelLogin.Controls.Add(btnLogin);
         }
 
         private void BtnLogin_Click(object sender, EventArgs e)
         {
-            string user = txtUser.Text.Trim();
-            string pass = txtPass.Text.Trim();
+            string user = txtUsername.Text.Trim();
+            string pass = txtPassword.Text.Trim();
 
-            if (user == "administrador" && pass == "wendy123")
+            var repo = new UsuarioRepository();
+            var usuario = repo.Autenticar(user, pass);
+
+            if (usuario != null)
             {
-                OpenMainForm("administrador");
-            }
-            else if (user == "cajero" && pass == "cajero123")
-            {
-                OpenMainForm("cajero");
+                MainForm mainForm = new MainForm(usuario);
+                mainForm.Show();
+                this.Hide();
+                mainForm.FormClosed += (s, args) => this.Close();
             }
             else
             {
                 lblError.Text = "Usuario o contraseña incorrectos.";
             }
-        }
-
-        private void OpenMainForm(string role)
-        {
-            this.Hide();
-            Form1 mainForm = new Form1(role);
-            mainForm.FormClosed += (s, args) => this.Close();
-            mainForm.Show();
         }
     }
 }

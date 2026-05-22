@@ -7,14 +7,21 @@ namespace STOCKPAP.Models
     {
         public int Id { get; set; }
         public DateTime Fecha { get; set; }
+        public decimal Subtotal { get; set; }
+        public decimal Iva { get; set; }
         public decimal Total { get; set; }
-        public string MetodoPago { get; set; }
-        public decimal? CantidadRecibida { get; set; }
-        public decimal? Cambio { get; set; }
-        public string TipoTarjeta { get; set; }
-        public string Banco { get; set; }
-        public string Ultimos4 { get; set; }
-        public string Referencia { get; set; }
-        public bool? Confirmacion { get; set; }
+
+        public List<DetalleVenta> Detalles { get; set; } = new List<DetalleVenta>();
+    }
+
+    public class DetalleVenta
+    {
+        public int Id { get; set; }
+        public int VentaId { get; set; }
+        public int ProductoId { get; set; }
+        public string ProductoNombre { get; set; } // For display
+        public int Cantidad { get; set; }
+        public decimal PrecioUnitario { get; set; }
+        public decimal Subtotal { get; set; }
     }
 }

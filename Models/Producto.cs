@@ -1,5 +1,3 @@
-using System;
-
 namespace STOCKPAP.Models
 {
     public class Producto
@@ -10,6 +8,7 @@ namespace STOCKPAP.Models
         public decimal PrecioCompra { get; set; }
         public decimal PrecioVenta { get; set; }
         public int Stock { get; set; }
-        public string Estado => Stock < 20 ? "Bajo Stock" : "Óptimo";
+        public int StockMinimo { get; set; }
+        public string ImagePath { get; set; }
     }
 }
