@@ -3,8 +3,8 @@ using System.Drawing;
 using System.IO;
 using System.Windows.Forms;
 using STOCKPAP.DataAccess;
-using STOCKPAP.Utilities;
 using STOCKPAP.Models;
+using STOCKPAP.Utilities;
 
 namespace STOCKPAP.Views
 {
@@ -13,6 +13,8 @@ namespace STOCKPAP.Views
         private FlowLayoutPanel gridProductos;
         private ProductoRepository repo;
         private TextBox txtBuscar;
+        private Label lblSubtitle;
+        private string _categoriaActiva = "Todas";
 
         public InventarioView()
         {
@@ -26,169 +28,347 @@ namespace STOCKPAP.Views
             this.BackColor = Color.FromArgb(245, 247, 250);
             this.Padding = new Padding(30);
 
-            // Título
+            // ── Título ──────────────────────────────────────────────────────
             Label lblTitle = new Label
             {
                 Text = "Inventario",
                 Font = new Font("Segoe UI", 24, FontStyle.Bold),
-                ForeColor = Color.Black,
+                ForeColor = Color.FromArgb(20, 20, 40),
                 AutoSize = true,
                 Location = new Point(30, 30)
             };
             this.Controls.Add(lblTitle);
 
-            // Subtítulo
-            Label lblSubtitle = new Label
+            lblSubtitle = new Label
             {
-                Text = "12 productos • 1 con stock bajo",
+                Text = "Cargando...",
                 Font = new Font("Segoe UI", 11),
                 ForeColor = Color.Gray,
                 AutoSize = true,
-                Location = new Point(35, 75)
+                Location = new Point(35, 72)
             };
             this.Controls.Add(lblSubtitle);
 
-            // Botón Agregar
+            // ── Botón Agregar ────────────────────────────────────────────────
             RoundedButton btnAgregar = new RoundedButton
             {
-                Text = "+  Agregar Producto",
-                Size = new Size(180, 45),
-                Location = new Point(this.Width - 210, 30),
+                Text = "➕  Agregar Producto",
+                Size = new Size(190, 42),
+                Location = new Point(this.Width - 220, 35),
                 BackColor = Color.FromArgb(30, 96, 255),
                 ForeColor = Color.White,
                 Font = new Font("Segoe UI", 10, FontStyle.Bold),
                 BorderRadius = 10,
-                Anchor = AnchorStyles.Top | AnchorStyles.Right
+                Anchor = AnchorStyles.Top | AnchorStyles.Right,
+                Cursor = Cursors.Hand
             };
+            btnAgregar.Click += BtnAgregar_Click;
             this.Controls.Add(btnAgregar);
 
-            // Barra de búsqueda y filtros
+            // ── Panel búsqueda + filtros ─────────────────────────────────────
             RoundedPanel panelFiltros = new RoundedPanel
             {
                 Size = new Size(800, 110),
-                Location = new Point(30, 120),
+                Location = new Point(30, 115),
                 BackColor = Color.White,
-                BorderRadius = 15,
+                BorderRadius = 12,
                 Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right
             };
             this.Controls.Add(panelFiltros);
+
+            // Icono búsqueda
+            Label lblLupa = new Label
+            {
+                Text = "🔍",
+                Font = new Font("Segoe UI", 12),
+                AutoSize = true,
+                Location = new Point(15, 16)
+            };
+            panelFiltros.Controls.Add(lblLupa);
 
             txtBuscar = new TextBox
             {
                 Text = "Buscar productos...",
                 Font = new Font("Segoe UI", 12),
                 ForeColor = Color.Gray,
-                Location = new Point(20, 20),
-                Width = 760,
+                Location = new Point(45, 15),
+                Width = 720,
                 BorderStyle = BorderStyle.None
             };
-            txtBuscar.Enter += (s, e) => { if (txtBuscar.Text == "Buscar productos...") { txtBuscar.Text = ""; txtBuscar.ForeColor = Color.Black; } };
-            txtBuscar.Leave += (s, e) => { if (string.IsNullOrWhiteSpace(txtBuscar.Text)) { txtBuscar.Text = "Buscar productos..."; txtBuscar.ForeColor = Color.Gray; } };
-            txtBuscar.TextChanged += (s, e) => { if(txtBuscar.Text != "Buscar productos...") LoadProductos(txtBuscar.Text); };
-            
-            Panel lineSearch = new Panel { BackColor = Color.LightGray, Height = 1, Width = 760, Location = new Point(20, 45) };
+            txtBuscar.Enter += (s, e) =>
+            {
+                if (txtBuscar.Text == "Buscar productos...")
+                { txtBuscar.Text = ""; txtBuscar.ForeColor = Color.Black; }
+            };
+            txtBuscar.Leave += (s, e) =>
+            {
+                if (string.IsNullOrWhiteSpace(txtBuscar.Text))
+                { txtBuscar.Text = "Buscar productos..."; txtBuscar.ForeColor = Color.Gray; }
+            };
+            txtBuscar.TextChanged += (s, e) =>
+            {
+                if (txtBuscar.Text != "Buscar productos...")
+                    LoadProductos(txtBuscar.Text);
+            };
+            Panel lineSearch = new Panel
+            {
+                BackColor = Color.FromArgb(220, 220, 220),
+                Height = 1, Width = 740, Location = new Point(15, 42)
+            };
             panelFiltros.Controls.Add(txtBuscar);
             panelFiltros.Controls.Add(lineSearch);
 
-            // Filtros
+            // Botones de categoría
             string[] cats = { "Todas", "Cuadernos", "Escritura", "Papel", "Marcadores", "Organización", "Adhesivos", "Corte" };
-            int fx = 20;
-            foreach(var cat in cats)
+            int fx = 15;
+            foreach (var cat in cats)
             {
+                string catLocal = cat;
+                int btnW = TextRenderer.MeasureText(cat, new Font("Segoe UI", 9)).Width + 28;
                 RoundedButton btnCat = new RoundedButton
                 {
                     Text = cat,
                     Font = new Font("Segoe UI", 9),
-                    Size = new Size(cat == "Todas" ? 70 : TextRenderer.MeasureText(cat, new Font("Segoe UI", 9)).Width + 30, 35),
-                    Location = new Point(fx, 60),
-                    BackColor = cat == "Todas" ? Color.FromArgb(30, 96, 255) : Color.White,
-                    ForeColor = cat == "Todas" ? Color.White : Color.Black,
-                    BorderColor = cat == "Todas" ? Color.Transparent : Color.LightGray,
+                    Size = new Size(btnW, 32),
+                    Location = new Point(fx, 62),
+                    BackColor = cat == "Todas" ? Color.FromArgb(30, 96, 255) : Color.FromArgb(245, 247, 250),
+                    ForeColor = cat == "Todas" ? Color.White : Color.FromArgb(60, 60, 60),
+                    BorderColor = cat == "Todas" ? Color.Transparent : Color.FromArgb(210, 215, 225),
                     BorderSize = cat == "Todas" ? 0 : 1,
-                    BorderRadius = 10
+                    BorderRadius = 8,
+                    Cursor = Cursors.Hand,
+                    Tag = catLocal
+                };
+                btnCat.Click += (s, e) =>
+                {
+                    _categoriaActiva = catLocal;
+                    // Refrescar estilos de todos los botones de cat
+                    foreach (Control ctrl in panelFiltros.Controls)
+                    {
+                        if (ctrl is RoundedButton rb && rb.Tag is string tag &&
+                            cats != null && System.Array.IndexOf(cats, tag) >= 0)
+                        {
+                            rb.BackColor = tag == _categoriaActiva ? Color.FromArgb(30, 96, 255) : Color.FromArgb(245, 247, 250);
+                            rb.ForeColor = tag == _categoriaActiva ? Color.White : Color.FromArgb(60, 60, 60);
+                            rb.BorderColor = tag == _categoriaActiva ? Color.Transparent : Color.FromArgb(210, 215, 225);
+                            rb.Invalidate();
+                        }
+                    }
+                    LoadProductos(busqueda: txtBuscar.Text == "Buscar productos..." ? "" : txtBuscar.Text);
                 };
                 panelFiltros.Controls.Add(btnCat);
-                fx += btnCat.Width + 10;
+                fx += btnW + 8;
             }
 
-            // Grid de productos
+            // ── Grid de productos ────────────────────────────────────────────
             gridProductos = new FlowLayoutPanel
             {
-                Location = new Point(30, 250),
+                Location = new Point(30, 240),
                 Size = new Size(800, 500),
                 AutoScroll = true,
                 Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right,
-                BackColor = Color.Transparent
+                BackColor = Color.Transparent,
+                Padding = new Padding(0, 5, 0, 5)
             };
             this.Controls.Add(gridProductos);
         }
 
-        private void LoadProductos(string filtro = "")
+        // ── Carga de datos ───────────────────────────────────────────────────
+        private void LoadProductos(string busqueda = "")
         {
             gridProductos.Controls.Clear();
-            var lista = string.IsNullOrEmpty(filtro) ? repo.ObtenerTodos() : repo.BuscarPorNombre(filtro);
+
+            System.Collections.Generic.List<Producto> lista;
+            if (!string.IsNullOrEmpty(busqueda))
+                lista = repo.BuscarPorNombre(busqueda);
+            else
+                lista = repo.BuscarPorCategoria(_categoriaActiva);
+
+            int stockBajo = 0;
+            foreach (var p in lista)
+                if (p.Stock <= p.StockMinimo) stockBajo++;
+
+            lblSubtitle.Text = $"{lista.Count} producto(s)  •  {stockBajo} con stock bajo";
+
+            if (lista.Count == 0)
+            {
+                Label lblVacio = new Label
+                {
+                    Text = "No se encontraron productos.",
+                    Font = new Font("Segoe UI", 12),
+                    ForeColor = Color.Gray,
+                    AutoSize = true,
+                    Margin = new Padding(20)
+                };
+                gridProductos.Controls.Add(lblVacio);
+                return;
+            }
 
             foreach (var p in lista)
+                gridProductos.Controls.Add(CrearCardProducto(p));
+        }
+
+        // ── Card de producto con botones Editar / Eliminar ───────────────────
+        private Panel CrearCardProducto(Producto p)
+        {
+            RoundedPanel card = new RoundedPanel
             {
-                RoundedPanel card = new RoundedPanel
-                {
-                    Size = new Size(200, 280),
-                    BackColor = Color.White,
-                    BorderRadius = 15,
-                    Margin = new Padding(10)
-                };
+                Size = new Size(210, 310),
+                BackColor = Color.White,
+                BorderRadius = 14,
+                Margin = new Padding(8)
+            };
 
-                PictureBox pic = new PictureBox
-                {
-                    Size = new Size(200, 150),
-                    Location = new Point(0, 0),
-                    SizeMode = PictureBoxSizeMode.StretchImage,
-                    BackColor = Color.LightGray
-                };
+            // Imagen
+            PictureBox pic = new PictureBox
+            {
+                Size = new Size(210, 140),
+                Location = new Point(0, 0),
+                SizeMode = PictureBoxSizeMode.Zoom,
+                BackColor = Color.FromArgb(245, 247, 250)
+            };
+            if (!string.IsNullOrEmpty(p.ImagePath))
+            {
                 string path = Path.Combine(Application.StartupPath, "Assets", "Images", p.ImagePath);
-                if (File.Exists(path)) pic.Image = Image.FromFile(path);
-                
-                Label lblName = new Label
+                if (File.Exists(path))
                 {
-                    Text = p.Nombre,
-                    Font = new Font("Segoe UI", 10, FontStyle.Bold),
-                    Location = new Point(15, 160),
-                    AutoSize = false,
-                    Size = new Size(170, 40)
-                };
-
-                Label lblPrice = new Label
+                    try { pic.Image = Image.FromFile(path); }
+                    catch { }
+                }
+            }
+            if (pic.Image == null)
+            {
+                // Placeholder con inicial
+                pic.Paint += (s, ev) =>
                 {
-                    Text = $"${p.PrecioVenta:0.00}",
-                    Font = new Font("Segoe UI", 12, FontStyle.Bold),
-                    ForeColor = Color.FromArgb(30, 96, 255),
-                    Location = new Point(15, 205),
-                    AutoSize = true
+                    ev.Graphics.Clear(Color.FromArgb(230, 235, 250));
+                    string ini = p.Nombre.Length > 0 ? p.Nombre[0].ToString().ToUpper() : "?";
+                    using (Font f = new Font("Segoe UI", 32, FontStyle.Bold))
+                        ev.Graphics.DrawString(ini, f, new SolidBrush(Color.FromArgb(30, 96, 255)),
+                            new RectangleF(0, 0, 210, 140),
+                            new StringFormat { Alignment = StringAlignment.Center, LineAlignment = StringAlignment.Center });
                 };
+            }
+            card.Controls.Add(pic);
 
-                RoundedPanel stockBadge = new RoundedPanel
+            // Nombre
+            Label lblName = new Label
+            {
+                Text = p.Nombre,
+                Font = new Font("Segoe UI", 10, FontStyle.Bold),
+                ForeColor = Color.FromArgb(20, 20, 40),
+                Location = new Point(12, 148),
+                AutoSize = false,
+                Size = new Size(186, 38)
+            };
+            card.Controls.Add(lblName);
+
+            // Precio
+            Label lblPrice = new Label
+            {
+                Text = $"${p.PrecioVenta:0.00}",
+                Font = new Font("Segoe UI", 12, FontStyle.Bold),
+                ForeColor = Color.FromArgb(30, 96, 255),
+                Location = new Point(12, 188),
+                AutoSize = true
+            };
+            card.Controls.Add(lblPrice);
+
+            // Badge stock
+            bool bajoStock = p.Stock <= p.StockMinimo;
+            RoundedPanel badge = new RoundedPanel
+            {
+                Size = new Size(115, 22),
+                Location = new Point(12, 216),
+                BackColor = bajoStock ? Color.FromArgb(255, 235, 235) : Color.FromArgb(230, 250, 235),
+                BorderRadius = 8
+            };
+            Label lblStock = new Label
+            {
+                Text = bajoStock ? $"⚠ Stock bajo ({p.Stock})" : $"✓ {p.Stock} unidades",
+                ForeColor = bajoStock ? Color.FromArgb(180, 30, 30) : Color.FromArgb(30, 140, 60),
+                Font = new Font("Segoe UI", 7, FontStyle.Bold),
+                Dock = DockStyle.Fill,
+                TextAlign = ContentAlignment.MiddleCenter
+            };
+            badge.Controls.Add(lblStock);
+            card.Controls.Add(badge);
+
+            // ── Botones Editar / Eliminar ────────────────────────────────────
+            Button btnEditar = new Button
+            {
+                Text = "✏ Editar",
+                Location = new Point(12, 246),
+                Size = new Size(84, 30),
+                Font = new Font("Segoe UI", 8, FontStyle.Bold),
+                FlatStyle = FlatStyle.Flat,
+                BackColor = Color.FromArgb(240, 244, 255),
+                ForeColor = Color.FromArgb(30, 96, 255),
+                Cursor = Cursors.Hand
+            };
+            btnEditar.FlatAppearance.BorderColor = Color.FromArgb(180, 200, 255);
+            btnEditar.Click += (s, e) => EditarProducto(p);
+            card.Controls.Add(btnEditar);
+
+            Button btnEliminar = new Button
+            {
+                Text = "🗑 Eliminar",
+                Location = new Point(104, 246),
+                Size = new Size(94, 30),
+                Font = new Font("Segoe UI", 8, FontStyle.Bold),
+                FlatStyle = FlatStyle.Flat,
+                BackColor = Color.FromArgb(255, 240, 240),
+                ForeColor = Color.FromArgb(180, 30, 30),
+                Cursor = Cursors.Hand
+            };
+            btnEliminar.FlatAppearance.BorderColor = Color.FromArgb(255, 180, 180);
+            btnEliminar.Click += (s, e) => EliminarProducto(p);
+            card.Controls.Add(btnEliminar);
+
+            return card;
+        }
+
+        // ── Acciones CRUD ────────────────────────────────────────────────────
+        private void BtnAgregar_Click(object sender, EventArgs e)
+        {
+            using (var form = new ProductoForm())
+            {
+                if (form.ShowDialog(this) == DialogResult.OK)
+                    LoadProductos();
+            }
+        }
+
+        private void EditarProducto(Producto p)
+        {
+            using (var form = new ProductoForm(p))
+            {
+                if (form.ShowDialog(this) == DialogResult.OK)
+                    LoadProductos();
+            }
+        }
+
+        private void EliminarProducto(Producto p)
+        {
+            var res = MessageBox.Show(
+                $"¿Estás seguro de que deseas eliminar el producto:\n\n\"{p.Nombre}\"?\n\nEsta acción no se puede deshacer.",
+                "Confirmar eliminación",
+                MessageBoxButtons.YesNo,
+                MessageBoxIcon.Warning,
+                MessageBoxDefaultButton.Button2);
+
+            if (res == DialogResult.Yes)
+            {
+                if (repo.EliminarProducto(p.Id))
                 {
-                    Size = new Size(100, 25),
-                    Location = new Point(15, 240),
-                    BackColor = p.Stock <= p.StockMinimo ? Color.FromArgb(255, 235, 238) : Color.FromArgb(30, 30, 30),
-                    BorderRadius = 10
-                };
-                Label lblStock = new Label
+                    MessageBox.Show("Producto eliminado correctamente.", "Éxito",
+                        MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    LoadProductos();
+                }
+                else
                 {
-                    Text = p.Stock <= p.StockMinimo ? "Stock Bajo" : $"{p.Stock} unidades",
-                    ForeColor = p.Stock <= p.StockMinimo ? Color.Red : Color.White,
-                    Font = new Font("Segoe UI", 8, FontStyle.Bold),
-                    Dock = DockStyle.Fill,
-                    TextAlign = ContentAlignment.MiddleCenter
-                };
-                stockBadge.Controls.Add(lblStock);
-
-                card.Controls.Add(pic);
-                card.Controls.Add(lblName);
-                card.Controls.Add(lblPrice);
-                card.Controls.Add(stockBadge);
-
-                gridProductos.Controls.Add(card);
+                    MessageBox.Show("No se pudo eliminar el producto.", "Error",
+                        MessageBoxButtons.OK, MessageBoxIcon.Error);
+                }
             }
         }
     }

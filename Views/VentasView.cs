@@ -7,6 +7,7 @@ using STOCKPAP.DataAccess;
 using STOCKPAP.Utilities;
 using STOCKPAP.Models;
 using System.Linq;
+// AppEvents ya está en STOCKPAP.Utilities
 
 namespace STOCKPAP.Views
 {
@@ -335,9 +336,12 @@ namespace STOCKPAP.Views
             {
                 if (repoVenta.RegistrarVenta(ventaActual))
                 {
+                    // Notificar a todas las vistas suscritas (Reportes, Movimientos, etc.)
+                    AppEvents.OnVentaRealizada();
+
                     ventaActual = new Venta();
                     UpdateCartUI();
-                    LoadProductos(); // Refresh stock
+                    LoadProductos(); // Refresh stock en la vista actual
                 }
                 else
                 {
@@ -347,3 +351,4 @@ namespace STOCKPAP.Views
         }
     }
 }
+
