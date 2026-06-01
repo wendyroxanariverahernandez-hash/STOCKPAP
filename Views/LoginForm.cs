@@ -21,7 +21,7 @@ namespace STOCKPAP.Views
 
         private void InitializeComponent()
         {
-            this.Text = "StockPap - Iniciar Sesión";
+            this.Text = "StockPap - Iniciar Sesion";
             this.Size = new Size(400, 500);
             this.StartPosition = FormStartPosition.CenterScreen;
             this.FormBorderStyle = FormBorderStyle.FixedSingle;
@@ -74,11 +74,11 @@ namespace STOCKPAP.Views
                 Location = new Point(40, 200),
                 Size = new Size(240, 30),
                 Font = new Font("Segoe UI", 12),
-                Text = "Contraseña",
+                Text = "Contrasena",
                 ForeColor = Color.Gray
             };
-            txtPassword.Enter += (s, e) => { if (txtPassword.Text == "Contraseña") { txtPassword.Text = ""; txtPassword.ForeColor = Color.Black; txtPassword.PasswordChar = '*'; } };
-            txtPassword.Leave += (s, e) => { if (string.IsNullOrWhiteSpace(txtPassword.Text)) { txtPassword.Text = "Contraseña"; txtPassword.ForeColor = Color.Gray; txtPassword.PasswordChar = '\0'; } };
+            txtPassword.Enter += (s, e) => { if (txtPassword.Text == "Contrasena") { txtPassword.Text = ""; txtPassword.ForeColor = Color.Black; txtPassword.PasswordChar = '*'; } };
+            txtPassword.Leave += (s, e) => { if (string.IsNullOrWhiteSpace(txtPassword.Text)) { txtPassword.Text = "Contrasena"; txtPassword.ForeColor = Color.Gray; txtPassword.PasswordChar = '\0'; } };
             panelLogin.Controls.Add(txtPassword);
 
             lblError = new Label
@@ -110,19 +110,31 @@ namespace STOCKPAP.Views
             string user = txtUsername.Text.Trim();
             string pass = txtPassword.Text.Trim();
 
-            var repo = new UsuarioRepository();
-            var usuario = repo.Autenticar(user, pass);
+            try
+            {
+                var repo = new UsuarioRepository();
+                var usuario = repo.Autenticar(user, pass);
 
-            if (usuario != null)
-            {
-                MainForm mainForm = new MainForm(usuario);
-                mainForm.Show();
-                this.Hide();
-                mainForm.FormClosed += (s, args) => this.Close();
+                if (usuario != null)
+                {
+                    MainForm mainForm = new MainForm(usuario);
+                    mainForm.Show();
+                    this.Hide();
+                    mainForm.FormClosed += (s, args) => this.Close();
+                }
+                else
+                {
+                    lblError.Text = "Usuario o contrasena incorrectos.";
+                }
             }
-            else
+            catch (Exception ex)
             {
-                lblError.Text = "Usuario o contraseña incorrectos.";
+                lblError.Text = "No se pudo conectar a la base de datos.";
+                MessageBox.Show(
+                    "Revisa que PostgreSQL este iniciado, que exista la base stockpap_db y que la cadena de conexion sea correcta.\n\nDetalle: " + ex.Message,
+                    "Error de conexion",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Error);
             }
         }
     }

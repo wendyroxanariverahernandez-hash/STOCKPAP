@@ -22,7 +22,7 @@ namespace STOCKPAP.Views
         {
             currentUser = user;
             InitializeComponent();
-            LoadView(new VentasView()); // Default view
+            LoadView(new VentasView(currentUser)); // Default view
         }
 
         private void InitializeComponent()
@@ -89,7 +89,7 @@ namespace STOCKPAP.Views
 
             // Menu Buttons
             int startY = 120;
-            string[] menus = { "Ventas", "Inventario", "Movimientos", "Proveedores", "Reportes" };
+            string[] menus = { "Ventas", "Inventario", "Proveedores", "Reportes" };
             foreach (var menu in menus)
             {
                 Button btn = new Button
@@ -114,7 +114,7 @@ namespace STOCKPAP.Views
             // User Info
             lblUser = new Label
             {
-                Text = $"Usuario: {currentUser.Username}",
+                Text = $"Usuario: {currentUser.Username} ({currentUser.Rol})",
                 Font = new Font("Segoe UI", 9),
                 ForeColor = Color.Gray,
                 AutoSize = true,
@@ -183,11 +183,10 @@ namespace STOCKPAP.Views
             UserControl view = null;
             switch (menuName)
             {
-                case "Ventas": view = new VentasView(); break;
-                case "Inventario": view = new InventarioView(); break;
-                case "Movimientos": view = new MovimientosView(); break;
-                case "Proveedores": view = new ProveedoresView(); break;
-                case "Reportes": view = new ReportesView(); break;
+                case "Ventas": view = new VentasView(currentUser); break;
+                case "Inventario": view = new InventarioView(EsAdmin()); break;
+                case "Proveedores": view = new ProveedoresView(EsAdmin()); break;
+                case "Reportes": view = new ReportesView(EsAdmin()); break;
             }
 
             if (view != null) LoadView(view);
@@ -198,6 +197,11 @@ namespace STOCKPAP.Views
             contentPanel.Controls.Clear();
             view.Dock = DockStyle.Fill;
             contentPanel.Controls.Add(view);
+        }
+
+        private bool EsAdmin()
+        {
+            return currentUser != null && string.Equals(currentUser.Rol, "Admin", StringComparison.OrdinalIgnoreCase);
         }
     }
 }

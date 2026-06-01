@@ -31,5 +31,11 @@ namespace STOCKPAP.DataAccess
             }
             return null;
         }
+
+        public bool EsAdministrador(string username, string password)
+        {
+            var usuario = Autenticar(username, password);
+            return usuario != null && usuario.Rol.ToLower() == "admin";
+        }
     }
 }

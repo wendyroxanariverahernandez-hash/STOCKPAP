@@ -11,9 +11,11 @@ namespace STOCKPAP.Views
     {
         private FlowLayoutPanel listMovimientos;
         private MovimientoRepository repo;
+        private bool puedeEditar;
 
-        public MovimientosView()
+        public MovimientosView(bool puedeEditar = true)
         {
+            this.puedeEditar = puedeEditar;
             repo = new MovimientoRepository();
             InitializeComponent();
             LoadData();
@@ -40,6 +42,8 @@ namespace STOCKPAP.Views
                 BorderRadius = 10,
                 Anchor = AnchorStyles.Top | AnchorStyles.Right
             };
+            btnNuevo.Visible = puedeEditar;
+            btnNuevo.Click += BtnNuevo_Click;
             this.Controls.Add(btnNuevo);
 
             // Stats Panels
@@ -118,6 +122,15 @@ namespace STOCKPAP.Views
 
                 listMovimientos.Controls.Add(row);
                 listMovimientos.Controls.Add(new Panel { BackColor = Color.WhiteSmoke, Height = 1, Width = 700 });
+            }
+        }
+
+        private void BtnNuevo_Click(object sender, EventArgs e)
+        {
+            using (var form = new MovimientoForm())
+            {
+                if (form.ShowDialog(this) == DialogResult.OK)
+                    LoadData();
             }
         }
     }

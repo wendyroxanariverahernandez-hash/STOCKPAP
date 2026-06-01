@@ -8,144 +8,107 @@ namespace STOCKPAP.Views
 {
     public class CheckoutForm : Form
     {
-        private Venta ventaActual;
+        private readonly Venta ventaActual;
+        private readonly Func<bool> autorizarCancelacion;
         private TextBox txtCliente;
         private TextBox txtEfectivo;
-        private Button btnEfectivo;
-        private Button btnTarjeta;
-        private Button btnTransferencia;
-        private string metodoPago = "Efectivo";
 
-        public bool VentaConfirmada { get; private set; } = false;
+        public bool VentaConfirmada { get; private set; }
+        public bool VentaCancelada { get; private set; }
 
-        public CheckoutForm(Venta venta)
+        public CheckoutForm(Venta venta, Func<bool> autorizarCancelacion)
         {
             ventaActual = venta;
+            this.autorizarCancelacion = autorizarCancelacion;
             InitializeComponent();
         }
 
         private void InitializeComponent()
         {
-            this.Text = "Completar Venta";
-            this.Size = new Size(400, 600);
-            this.StartPosition = FormStartPosition.CenterParent;
-            this.FormBorderStyle = FormBorderStyle.FixedDialog;
-            this.MaximizeBox = false;
-            this.MinimizeBox = false;
-            this.BackColor = Color.White;
+            Text = "Completar Venta";
+            Size = new Size(420, 560);
+            StartPosition = FormStartPosition.CenterParent;
+            FormBorderStyle = FormBorderStyle.FixedDialog;
+            MaximizeBox = false;
+            MinimizeBox = false;
+            BackColor = Color.White;
 
-            Label lblTitle = new Label { Text = "Completar Venta", Font = new Font("Segoe UI", 16, FontStyle.Bold), AutoSize = true, Location = new Point(20, 20) };
-            this.Controls.Add(lblTitle);
-
-            // Cliente
-            Label lblC = new Label { Text = "Nombre del Cliente (Opcional)", Font = new Font("Segoe UI", 10, FontStyle.Bold), AutoSize = true, Location = new Point(20, 70) };
-            this.Controls.Add(lblC);
-
-            RoundedPanel pnlC = new RoundedPanel { Size = new Size(340, 40), Location = new Point(20, 100), BorderColor = Color.LightGray, BorderSize = 1, BackColor = Color.WhiteSmoke, BorderRadius = 10 };
-            txtCliente = new TextBox { Text = "Ej: Juan Pérez", ForeColor = Color.Gray, Font = new Font("Segoe UI", 11), Width = 320, Location = new Point(10, 8), BorderStyle = BorderStyle.None, BackColor = Color.WhiteSmoke };
-            txtCliente.Enter += (s, e) => { if (txtCliente.Text == "Ej: Juan Pérez") { txtCliente.Text = ""; txtCliente.ForeColor = Color.Black; } };
-            pnlC.Controls.Add(txtCliente);
-            this.Controls.Add(pnlC);
-
-            // Metodo Pago
-            Label lblM = new Label { Text = "Método de Pago", Font = new Font("Segoe UI", 10, FontStyle.Bold), AutoSize = true, Location = new Point(20, 160) };
-            this.Controls.Add(lblM);
-
-            btnEfectivo = CreatePaymentButton("Efectivo", 20, 190);
-            btnTarjeta = CreatePaymentButton("Tarjeta", 135, 190);
-            btnTransferencia = CreatePaymentButton("Transferencia", 250, 190);
-
-            btnEfectivo.Click += (s, e) => SelectPayment("Efectivo", btnEfectivo);
-            btnTarjeta.Click += (s, e) => SelectPayment("Tarjeta", btnTarjeta);
-            btnTransferencia.Click += (s, e) => SelectPayment("Transferencia", btnTransferencia);
-
-            this.Controls.Add(btnEfectivo); this.Controls.Add(btnTarjeta); this.Controls.Add(btnTransferencia);
-            SelectPayment("Efectivo", btnEfectivo); // Default
-
-            // Efectivo Recibido
-            Label lblE = new Label { Text = "Efectivo Recibido", Font = new Font("Segoe UI", 10, FontStyle.Bold), AutoSize = true, Location = new Point(20, 290) };
-            this.Controls.Add(lblE);
-
-            RoundedPanel pnlE = new RoundedPanel { Size = new Size(340, 40), Location = new Point(20, 320), BackColor = Color.WhiteSmoke, BorderRadius = 10 };
-            txtEfectivo = new TextBox { Text = "0.00", Font = new Font("Segoe UI", 11), Width = 320, Location = new Point(10, 8), BorderStyle = BorderStyle.None, BackColor = Color.WhiteSmoke };
-            pnlE.Controls.Add(txtEfectivo);
-            this.Controls.Add(pnlE);
-
-            // Totals
-            RoundedPanel pnlTot = new RoundedPanel { Size = new Size(340, 120), Location = new Point(20, 380), BackColor = Color.FromArgb(245, 247, 250), BorderRadius = 15 };
-            pnlTot.Controls.Add(new Label { Text = "Subtotal:", Font = new Font("Segoe UI", 10), Location = new Point(15, 15), AutoSize = true });
-            pnlTot.Controls.Add(new Label { Text = $"${ventaActual.Subtotal:0.00}", Font = new Font("Segoe UI", 10), Location = new Point(250, 15), AutoSize = true, TextAlign = ContentAlignment.MiddleRight });
-            pnlTot.Controls.Add(new Label { Text = "IVA:", Font = new Font("Segoe UI", 10), Location = new Point(15, 40), AutoSize = true });
-            pnlTot.Controls.Add(new Label { Text = $"${ventaActual.Iva:0.00}", Font = new Font("Segoe UI", 10), Location = new Point(250, 40), AutoSize = true, TextAlign = ContentAlignment.MiddleRight });
-            pnlTot.Controls.Add(new Panel { BackColor = Color.LightGray, Height = 1, Width = 310, Location = new Point(15, 65) });
-            pnlTot.Controls.Add(new Label { Text = "Total:", Font = new Font("Segoe UI", 12, FontStyle.Bold), Location = new Point(15, 80), AutoSize = true });
-            pnlTot.Controls.Add(new Label { Text = $"${ventaActual.Total:0.00}", Font = new Font("Segoe UI", 14, FontStyle.Bold), ForeColor = Color.FromArgb(30, 96, 255), Location = new Point(230, 80), AutoSize = true, TextAlign = ContentAlignment.MiddleRight });
-            this.Controls.Add(pnlTot);
-
-            // Buttons
-            RoundedButton btnCancel = new RoundedButton { Text = "Cancelar", Size = new Size(160, 45), Location = new Point(20, 510), BackColor = Color.White, ForeColor = Color.Black, BorderColor = Color.LightGray, BorderSize = 1, BorderRadius = 10 };
-            btnCancel.Click += (s, e) => this.Close();
-
-            RoundedButton btnConfirm = new RoundedButton { Text = "Confirmar Venta", Size = new Size(170, 45), Location = new Point(190, 510), BackColor = Color.FromArgb(10, 170, 60), ForeColor = Color.White, Font = new Font("Segoe UI", 10, FontStyle.Bold), BorderRadius = 10 };
-            btnConfirm.Click += BtnConfirm_Click;
-
-            this.Controls.Add(btnCancel);
-            this.Controls.Add(btnConfirm);
-        }
-
-        private Button CreatePaymentButton(string text, int x, int y)
-        {
-            Button btn = new Button
+            Controls.Add(new Label
             {
-                Text = text,
-                Size = new Size(110, 80),
-                Location = new Point(x, y),
-                FlatStyle = FlatStyle.Flat,
-                Font = new Font("Segoe UI", 9),
-                Cursor = Cursors.Hand
-            };
-            btn.FlatAppearance.BorderColor = Color.LightGray;
-            return btn;
+                Text = "Completar Venta",
+                Font = new Font("Segoe UI", 16, FontStyle.Bold),
+                AutoSize = true,
+                Location = new Point(20, 20)
+            });
+
+            Controls.Add(new Label { Text = "Nombre del Cliente (Opcional)", Font = new Font("Segoe UI", 10, FontStyle.Bold), AutoSize = true, Location = new Point(20, 70) });
+            RoundedPanel pnlCliente = new RoundedPanel { Size = new Size(360, 40), Location = new Point(20, 100), BorderColor = Color.LightGray, BorderSize = 1, BackColor = Color.WhiteSmoke, BorderRadius = 10 };
+            txtCliente = new TextBox { Text = "Ej: Juan Perez", ForeColor = Color.Gray, Font = new Font("Segoe UI", 11), Width = 340, Location = new Point(10, 8), BorderStyle = BorderStyle.None, BackColor = Color.WhiteSmoke };
+            txtCliente.Enter += (s, e) => { if (txtCliente.Text == "Ej: Juan Perez") { txtCliente.Text = ""; txtCliente.ForeColor = Color.Black; } };
+            pnlCliente.Controls.Add(txtCliente);
+            Controls.Add(pnlCliente);
+
+            Controls.Add(new Label { Text = "Metodo de Pago", Font = new Font("Segoe UI", 10, FontStyle.Bold), AutoSize = true, Location = new Point(20, 160) });
+            RoundedPanel pnlMetodo = new RoundedPanel { Size = new Size(360, 50), Location = new Point(20, 188), BackColor = Color.FromArgb(10, 15, 30), BorderRadius = 10 };
+            pnlMetodo.Controls.Add(new Label { Text = "Efectivo", Font = new Font("Segoe UI", 13, FontStyle.Bold), ForeColor = Color.White, Dock = DockStyle.Fill, TextAlign = ContentAlignment.MiddleCenter });
+            Controls.Add(pnlMetodo);
+
+            Controls.Add(new Label { Text = "Efectivo Recibido", Font = new Font("Segoe UI", 10, FontStyle.Bold), AutoSize = true, Location = new Point(20, 260) });
+            RoundedPanel pnlEfectivo = new RoundedPanel { Size = new Size(360, 40), Location = new Point(20, 290), BackColor = Color.WhiteSmoke, BorderRadius = 10 };
+            txtEfectivo = new TextBox { Text = "0.00", Font = new Font("Segoe UI", 11), Width = 340, Location = new Point(10, 8), BorderStyle = BorderStyle.None, BackColor = Color.WhiteSmoke };
+            pnlEfectivo.Controls.Add(txtEfectivo);
+            Controls.Add(pnlEfectivo);
+
+            RoundedPanel pnlTotales = new RoundedPanel { Size = new Size(360, 120), Location = new Point(20, 350), BackColor = Color.FromArgb(245, 247, 250), BorderRadius = 15 };
+            pnlTotales.Controls.Add(new Label { Text = "Subtotal:", Font = new Font("Segoe UI", 10), Location = new Point(15, 15), AutoSize = true });
+            pnlTotales.Controls.Add(new Label { Text = $"${ventaActual.Subtotal:0.00}", Font = new Font("Segoe UI", 10), Location = new Point(260, 15), AutoSize = true });
+            pnlTotales.Controls.Add(new Label { Text = "IVA:", Font = new Font("Segoe UI", 10), Location = new Point(15, 40), AutoSize = true });
+            pnlTotales.Controls.Add(new Label { Text = $"${ventaActual.Iva:0.00}", Font = new Font("Segoe UI", 10), Location = new Point(260, 40), AutoSize = true });
+            pnlTotales.Controls.Add(new Panel { BackColor = Color.LightGray, Height = 1, Width = 330, Location = new Point(15, 65) });
+            pnlTotales.Controls.Add(new Label { Text = "Total:", Font = new Font("Segoe UI", 12, FontStyle.Bold), Location = new Point(15, 82), AutoSize = true });
+            pnlTotales.Controls.Add(new Label { Text = $"${ventaActual.Total:0.00}", Font = new Font("Segoe UI", 14, FontStyle.Bold), ForeColor = Color.FromArgb(30, 96, 255), Location = new Point(245, 80), AutoSize = true });
+            Controls.Add(pnlTotales);
+
+            RoundedButton btnCerrar = new RoundedButton { Text = "Cerrar", Size = new Size(105, 40), Location = new Point(20, 485), BackColor = Color.White, ForeColor = Color.Black, BorderColor = Color.LightGray, BorderSize = 1, BorderRadius = 10 };
+            btnCerrar.Click += (s, e) => Close();
+            Controls.Add(btnCerrar);
+
+            RoundedButton btnCancelar = new RoundedButton { Text = "Cancelar Pedido", Size = new Size(130, 40), Location = new Point(135, 485), BackColor = Color.FromArgb(220, 50, 50), ForeColor = Color.White, Font = new Font("Segoe UI", 9, FontStyle.Bold), BorderRadius = 10 };
+            btnCancelar.Click += BtnCancel_Click;
+            Controls.Add(btnCancelar);
+
+            RoundedButton btnConfirmar = new RoundedButton { Text = "Confirmar Venta", Size = new Size(115, 40), Location = new Point(275, 485), BackColor = Color.FromArgb(10, 170, 60), ForeColor = Color.White, Font = new Font("Segoe UI", 9, FontStyle.Bold), BorderRadius = 10 };
+            btnConfirmar.Click += BtnConfirm_Click;
+            Controls.Add(btnConfirmar);
         }
 
-        private void SelectPayment(string method, Button activeBtn)
+        private void BtnCancel_Click(object sender, EventArgs e)
         {
-            metodoPago = method;
-            btnEfectivo.BackColor = Color.White; btnEfectivo.ForeColor = Color.Black;
-            btnTarjeta.BackColor = Color.White; btnTarjeta.ForeColor = Color.Black;
-            btnTransferencia.BackColor = Color.White; btnTransferencia.ForeColor = Color.Black;
+            if (autorizarCancelacion != null && !autorizarCancelacion())
+                return;
 
-            activeBtn.BackColor = Color.FromArgb(10, 15, 30);
-            activeBtn.ForeColor = Color.White;
+            VentaCancelada = true;
+            Close();
         }
 
         private void BtnConfirm_Click(object sender, EventArgs e)
         {
-            if (metodoPago == "Efectivo")
+            if (!decimal.TryParse(txtEfectivo.Text, out decimal recibido))
             {
-                if (decimal.TryParse(txtEfectivo.Text, out decimal recibido))
-                {
-                    if (recibido < ventaActual.Total)
-                    {
-                        MessageBox.Show("El efectivo recibido es menor al total.", "Aviso", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                        return;
-                    }
-                    decimal cambio = recibido - ventaActual.Total;
-                    MessageBox.Show($"¡Venta completada exitosamente!\n\nTotal: ${ventaActual.Total:0.00} | Cambio: ${cambio:0.00}", "Éxito", MessageBoxButtons.OK, MessageBoxIcon.Information);
-                }
-                else
-                {
-                    MessageBox.Show("Ingrese un monto válido en efectivo.", "Aviso", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                    return;
-                }
-            }
-            else
-            {
-                MessageBox.Show($"¡Venta completada exitosamente!\n\nTotal: ${ventaActual.Total:0.00}", "Éxito", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                MessageBox.Show("Ingrese un monto valido en efectivo.", "Aviso", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
             }
 
+            if (recibido < ventaActual.Total)
+            {
+                MessageBox.Show("El efectivo recibido es menor al total.", "Aviso", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
+            decimal cambio = recibido - ventaActual.Total;
+            MessageBox.Show($"Venta completada exitosamente.\n\nTotal: ${ventaActual.Total:0.00} | Cambio: ${cambio:0.00}", "Exito", MessageBoxButtons.OK, MessageBoxIcon.Information);
             VentaConfirmada = true;
-            this.Close();
+            Close();
         }
     }
 }

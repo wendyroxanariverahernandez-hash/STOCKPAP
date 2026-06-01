@@ -1,13 +1,11 @@
 using System;
-using System.Collections.Generic;
 using System.Drawing;
 using System.IO;
+using System.Linq;
 using System.Windows.Forms;
 using STOCKPAP.DataAccess;
-using STOCKPAP.Utilities;
 using STOCKPAP.Models;
-using System.Linq;
-// AppEvents ya está en STOCKPAP.Utilities
+using STOCKPAP.Utilities;
 
 namespace STOCKPAP.Views
 {
@@ -23,14 +21,19 @@ namespace STOCKPAP.Views
         private Label lblTotal;
         private Label lblItemsCount;
         private Venta ventaActual;
+        private Usuario currentUser;
+        private bool puedeVender;
 
-        public VentasView()
+        public VentasView(Usuario user)
         {
+            currentUser = user;
+            puedeVender = EsAdmin() || EsVentas();
             repoProd = new ProductoRepository();
             repoVenta = new VentaRepository();
             ventaActual = new Venta();
             InitializeComponent();
             LoadProductos();
+            UpdateCartUI();
         }
 
         private void InitializeComponent()
@@ -38,17 +41,12 @@ namespace STOCKPAP.Views
             this.BackColor = Color.FromArgb(245, 247, 250);
             this.Padding = new Padding(30);
 
-            // Left Side: Products
-            Panel panelIzquierdo = new Panel
-            {
-                Dock = DockStyle.Fill,
-                Padding = new Padding(0, 0, 20, 0)
-            };
+            Panel panelIzquierdo = new Panel { Dock = DockStyle.Fill, Padding = new Padding(0, 0, 20, 0) };
             this.Controls.Add(panelIzquierdo);
 
             Label lblTitle = new Label
             {
-                Text = "Nueva Venta",
+                Text = puedeVender ? "Nueva Venta" : "Consulta de Productos",
                 Font = new Font("Segoe UI", 24, FontStyle.Bold),
                 Location = new Point(0, 30),
                 AutoSize = true
@@ -73,7 +71,7 @@ namespace STOCKPAP.Views
             };
             txtBuscar.Enter += (s, e) => { if (txtBuscar.Text == "Buscar producto por nombre...") { txtBuscar.Text = ""; txtBuscar.ForeColor = Color.Black; } };
             txtBuscar.Leave += (s, e) => { if (string.IsNullOrWhiteSpace(txtBuscar.Text)) { txtBuscar.Text = "Buscar producto por nombre..."; txtBuscar.ForeColor = Color.Gray; } };
-            txtBuscar.TextChanged += (s, e) => { if(txtBuscar.Text != "Buscar producto por nombre...") LoadProductos(txtBuscar.Text); };
+            txtBuscar.TextChanged += (s, e) => { if (txtBuscar.Text != "Buscar producto por nombre...") LoadProductos(txtBuscar.Text); };
             searchPanel.Controls.Add(txtBuscar);
             panelIzquierdo.Controls.Add(searchPanel);
 
@@ -86,46 +84,29 @@ namespace STOCKPAP.Views
             };
             panelIzquierdo.Controls.Add(gridProductos);
 
-            // Right Side: Cart
-            Panel panelDerecho = new Panel
-            {
-                Dock = DockStyle.Right,
-                Width = 350,
-                BackColor = Color.White
-            };
+            Panel panelDerecho = new Panel { Dock = DockStyle.Right, Width = 350, BackColor = Color.White };
             this.Controls.Add(panelDerecho);
 
             Panel cartHeader = new Panel { Dock = DockStyle.Top, Height = 80, BackColor = Color.FromArgb(30, 96, 255) };
             Label lblCartTitle = new Label { Text = "Carrito", Font = new Font("Segoe UI", 16, FontStyle.Bold), ForeColor = Color.White, Location = new Point(20, 15), AutoSize = true };
-            lblItemsCount = new Label { Text = "0 artículos", Font = new Font("Segoe UI", 10), ForeColor = Color.White, Location = new Point(23, 45), AutoSize = true };
-            
-            Button btnLimpiar = new Button { Text = "✕  Limpiar", ForeColor = Color.White, BackColor = Color.Transparent, FlatStyle = FlatStyle.Flat, Font = new Font("Segoe UI", 10), Size = new Size(100, 30), Location = new Point(230, 20), Cursor = Cursors.Hand };
-            btnLimpiar.FlatAppearance.BorderSize = 0;
-            btnLimpiar.Click += (s, e) => { ventaActual.Detalles.Clear(); UpdateCartUI(); };
-
+            lblItemsCount = new Label { Text = "0 articulos", Font = new Font("Segoe UI", 10), ForeColor = Color.White, Location = new Point(23, 45), AutoSize = true };
+            Button btnCancelar = new Button { Text = "Cancelar", ForeColor = Color.White, BackColor = Color.Transparent, FlatStyle = FlatStyle.Flat, Font = new Font("Segoe UI", 10), Size = new Size(100, 30), Location = new Point(230, 20), Cursor = Cursors.Hand };
+            btnCancelar.FlatAppearance.BorderSize = 0;
+            btnCancelar.Click += (s, e) => CancelarVentaActual();
             cartHeader.Controls.Add(lblCartTitle);
             cartHeader.Controls.Add(lblItemsCount);
-            cartHeader.Controls.Add(btnLimpiar);
+            cartHeader.Controls.Add(btnCancelar);
             panelDerecho.Controls.Add(cartHeader);
 
-            gridCarrito = new FlowLayoutPanel
-            {
-                Dock = DockStyle.Fill,
-                AutoScroll = true,
-                Padding = new Padding(10)
-            };
+            gridCarrito = new FlowLayoutPanel { Dock = DockStyle.Fill, AutoScroll = true, Padding = new Padding(10) };
             panelDerecho.Controls.Add(gridCarrito);
 
             Panel cartFooter = new Panel { Dock = DockStyle.Bottom, Height = 180, Padding = new Padding(20) };
-            
             Label lblSubT = new Label { Text = "Subtotal:", Font = new Font("Segoe UI", 10), Location = new Point(20, 20), AutoSize = true };
             lblSubtotal = new Label { Text = "$0.00", Font = new Font("Segoe UI", 10, FontStyle.Bold), Location = new Point(250, 20), AutoSize = true, TextAlign = ContentAlignment.MiddleRight };
-            
             Label lblIvaT = new Label { Text = "IVA (16%):", Font = new Font("Segoe UI", 10), Location = new Point(20, 50), AutoSize = true };
             lblIva = new Label { Text = "$0.00", Font = new Font("Segoe UI", 10, FontStyle.Bold), Location = new Point(250, 50), AutoSize = true, TextAlign = ContentAlignment.MiddleRight };
-            
             Panel line = new Panel { BackColor = Color.LightGray, Height = 1, Width = 310, Location = new Point(20, 80) };
-
             Label lblTotT = new Label { Text = "Total:", Font = new Font("Segoe UI", 14, FontStyle.Bold), Location = new Point(20, 95), AutoSize = true };
             lblTotal = new Label { Text = "$0.00", Font = new Font("Segoe UI", 16, FontStyle.Bold), ForeColor = Color.FromArgb(30, 96, 255), Location = new Point(230, 95), AutoSize = true, TextAlign = ContentAlignment.MiddleRight };
 
@@ -134,10 +115,11 @@ namespace STOCKPAP.Views
                 Text = "Procesar Venta",
                 Size = new Size(310, 45),
                 Location = new Point(20, 135),
-                BackColor = Color.FromArgb(100, 200, 130),
+                BackColor = puedeVender ? Color.FromArgb(100, 200, 130) : Color.Gray,
                 ForeColor = Color.White,
                 Font = new Font("Segoe UI", 12, FontStyle.Bold),
-                BorderRadius = 10
+                BorderRadius = 10,
+                Enabled = puedeVender
             };
             btnProcesar.Click += BtnProcesar_Click;
 
@@ -146,9 +128,8 @@ namespace STOCKPAP.Views
             cartFooter.Controls.Add(line);
             cartFooter.Controls.Add(lblTotT); cartFooter.Controls.Add(lblTotal);
             cartFooter.Controls.Add(btnProcesar);
-            
             panelDerecho.Controls.Add(cartFooter);
-            gridCarrito.BringToFront(); // Ensure grid is between header and footer
+            gridCarrito.BringToFront();
         }
 
         private void LoadProductos(string filtro = "")
@@ -164,7 +145,7 @@ namespace STOCKPAP.Views
                     BackColor = Color.White,
                     BorderRadius = 15,
                     Margin = new Padding(10),
-                    Cursor = Cursors.Hand
+                    Cursor = puedeVender ? Cursors.Hand : Cursors.Default
                 };
                 card.Click += (s, e) => AddToCart(p);
 
@@ -176,56 +157,31 @@ namespace STOCKPAP.Views
                     BackColor = Color.LightGray
                 };
                 pic.Click += (s, e) => AddToCart(p);
-                string path = Path.Combine(Application.StartupPath, "Assets", "Images", p.ImagePath);
+                string path = Path.Combine(Application.StartupPath, "Assets", "Images", p.ImagePath ?? "");
                 if (File.Exists(path)) pic.Image = Image.FromFile(path);
-                
-                Label lblName = new Label
-                {
-                    Text = p.Nombre,
-                    Font = new Font("Segoe UI", 9, FontStyle.Bold),
-                    Location = new Point(10, 120),
-                    AutoSize = false,
-                    Size = new Size(140, 35)
-                };
+
+                Label lblName = new Label { Text = p.Nombre, Font = new Font("Segoe UI", 9, FontStyle.Bold), Location = new Point(10, 120), AutoSize = false, Size = new Size(140, 35) };
                 lblName.Click += (s, e) => AddToCart(p);
-
-                Label lblPrice = new Label
-                {
-                    Text = $"${p.PrecioVenta:0.00}",
-                    Font = new Font("Segoe UI", 11, FontStyle.Bold),
-                    ForeColor = Color.FromArgb(30, 96, 255),
-                    Location = new Point(10, 160),
-                    AutoSize = true
-                };
-
-                RoundedPanel stockBadge = new RoundedPanel
-                {
-                    Size = new Size(80, 20),
-                    Location = new Point(10, 195),
-                    BackColor = Color.FromArgb(30, 30, 30),
-                    BorderRadius = 10
-                };
-                Label lblStock = new Label
-                {
-                    Text = $"{p.Stock} pieza",
-                    ForeColor = Color.White,
-                    Font = new Font("Segoe UI", 7, FontStyle.Bold),
-                    Dock = DockStyle.Fill,
-                    TextAlign = ContentAlignment.MiddleCenter
-                };
-                stockBadge.Controls.Add(lblStock);
+                Label lblPrice = new Label { Text = $"${p.PrecioVenta:0.00}", Font = new Font("Segoe UI", 11, FontStyle.Bold), ForeColor = Color.FromArgb(30, 96, 255), Location = new Point(10, 160), AutoSize = true };
+                RoundedPanel stockBadge = new RoundedPanel { Size = new Size(90, 20), Location = new Point(10, 195), BackColor = Color.FromArgb(30, 30, 30), BorderRadius = 10 };
+                stockBadge.Controls.Add(new Label { Text = $"{p.Stock} piezas", ForeColor = Color.White, Font = new Font("Segoe UI", 7, FontStyle.Bold), Dock = DockStyle.Fill, TextAlign = ContentAlignment.MiddleCenter });
 
                 card.Controls.Add(pic);
                 card.Controls.Add(lblName);
                 card.Controls.Add(lblPrice);
                 card.Controls.Add(stockBadge);
-
                 gridProductos.Controls.Add(card);
             }
         }
 
         private void AddToCart(Producto p)
         {
+            if (!puedeVender)
+            {
+                MessageBox.Show("Tu rol es de consulta. No puedes agregar productos al carrito.", "Acceso restringido", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
             if (p.Stock <= 0)
             {
                 MessageBox.Show("Producto sin stock.", "Aviso", MessageBoxButtons.OK, MessageBoxIcon.Warning);
@@ -240,7 +196,10 @@ namespace STOCKPAP.Views
                     item.Cantidad++;
                     item.Subtotal = item.Cantidad * item.PrecioUnitario;
                 }
-                else MessageBox.Show("No hay suficiente stock.", "Aviso", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                else
+                {
+                    MessageBox.Show("No hay suficiente stock.", "Aviso", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                }
             }
             else
             {
@@ -264,35 +223,37 @@ namespace STOCKPAP.Views
 
             if (ventaActual.Detalles.Count == 0)
             {
-                Label empty = new Label { Text = "\n\n\n🛒\n\nCarrito vacío\nSelecciona productos para comenzar", Font = new Font("Segoe UI", 12), ForeColor = Color.Gray, AutoSize = false, Size = new Size(310, 200), TextAlign = ContentAlignment.MiddleCenter };
+                Label empty = new Label { Text = "\n\n\nCarrito vacio\nSelecciona productos para comenzar", Font = new Font("Segoe UI", 12), ForeColor = Color.Gray, AutoSize = false, Size = new Size(310, 200), TextAlign = ContentAlignment.MiddleCenter };
                 gridCarrito.Controls.Add(empty);
             }
             else
             {
-                foreach (var d in ventaActual.Detalles)
+                foreach (var d in ventaActual.Detalles.ToList())
                 {
                     RoundedPanel pnlItem = new RoundedPanel { Size = new Size(310, 80), Margin = new Padding(0, 5, 0, 5), BackColor = Color.White, BorderRadius = 15, BorderColor = Color.LightGray, BorderSize = 1 };
-                    
                     Label lblN = new Label { Text = d.ProductoNombre, Font = new Font("Segoe UI", 10, FontStyle.Bold), Location = new Point(10, 10), AutoSize = false, Size = new Size(200, 20) };
-                    
-                    Button btnMinus = new Button { Text = "−", Font = new Font("Segoe UI", 12, FontStyle.Bold), Size = new Size(30, 30), Location = new Point(10, 40), FlatStyle = FlatStyle.Flat, ForeColor = Color.Gray, BackColor = Color.WhiteSmoke, Cursor = Cursors.Hand };
+                    Button btnMinus = new Button { Text = "-", Font = new Font("Segoe UI", 12, FontStyle.Bold), Size = new Size(30, 30), Location = new Point(10, 40), FlatStyle = FlatStyle.Flat, ForeColor = Color.Gray, BackColor = Color.WhiteSmoke, Cursor = Cursors.Hand };
                     btnMinus.FlatAppearance.BorderSize = 0;
-                    btnMinus.Click += (s, e) => { if (d.Cantidad > 1) { d.Cantidad--; d.Subtotal = d.Cantidad * d.PrecioUnitario; UpdateCartUI(); } else { ventaActual.Detalles.Remove(d); UpdateCartUI(); } };
-
+                    btnMinus.Click += (s, e) => { if (d.Cantidad > 1) { d.Cantidad--; d.Subtotal = d.Cantidad * d.PrecioUnitario; } else { ventaActual.Detalles.Remove(d); } UpdateCartUI(); };
                     Label lblC = new Label { Text = d.Cantidad.ToString(), Font = new Font("Segoe UI", 11), Location = new Point(45, 45), AutoSize = false, Size = new Size(40, 20), TextAlign = ContentAlignment.MiddleCenter };
-
                     Button btnPlus = new Button { Text = "+", Font = new Font("Segoe UI", 12, FontStyle.Bold), Size = new Size(30, 30), Location = new Point(90, 40), FlatStyle = FlatStyle.Flat, ForeColor = Color.Gray, BackColor = Color.WhiteSmoke, Cursor = Cursors.Hand };
                     btnPlus.FlatAppearance.BorderSize = 0;
-                    btnPlus.Click += (s, e) => { 
-                        var p = repoProd.BuscarPorNombre(d.ProductoNombre).FirstOrDefault();
-                        if (p != null && d.Cantidad < p.Stock) { d.Cantidad++; d.Subtotal = d.Cantidad * d.PrecioUnitario; UpdateCartUI(); } 
-                        else { MessageBox.Show("Stock insuficiente.", "Aviso", MessageBoxButtons.OK, MessageBoxIcon.Warning); }
-                    };
+                    btnPlus.Click += (s, e) =>
+                    {
+                        var producto = repoProd.ObtenerTodos().FirstOrDefault(p => p.Id == d.ProductoId);
+                        if (producto != null && d.Cantidad >= producto.Stock)
+                        {
+                            MessageBox.Show("Stock insuficiente.", "Aviso", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                            return;
+                        }
 
-                    Label lblUnit = new Label { Text = $"${d.PrecioUnitario:0.00} c/u", Font = new Font("Segoe UI", 8), ForeColor = Color.Gray, Location = new Point(220, 35), AutoSize = true, TextAlign = ContentAlignment.MiddleRight };
-                    Label lblSub = new Label { Text = $"${d.Subtotal:0.00}", Font = new Font("Segoe UI", 11, FontStyle.Bold), ForeColor = Color.FromArgb(30, 96, 255), Location = new Point(220, 50), AutoSize = true, TextAlign = ContentAlignment.MiddleRight };
-                    
-                    Button btnDel = new Button { Text = "🗑", ForeColor = Color.Red, FlatStyle = FlatStyle.Flat, Font = new Font("Segoe UI", 10), Size = new Size(30, 30), Location = new Point(270, 5), Cursor = Cursors.Hand, BackColor = Color.Transparent };
+                        d.Cantidad++;
+                        d.Subtotal = d.Cantidad * d.PrecioUnitario;
+                        UpdateCartUI();
+                    };
+                    Label lblUnit = new Label { Text = $"${d.PrecioUnitario:0.00} c/u", Font = new Font("Segoe UI", 8), ForeColor = Color.Gray, Location = new Point(220, 35), AutoSize = true };
+                    Label lblSub = new Label { Text = $"${d.Subtotal:0.00}", Font = new Font("Segoe UI", 11, FontStyle.Bold), ForeColor = Color.FromArgb(30, 96, 255), Location = new Point(220, 50), AutoSize = true };
+                    Button btnDel = new Button { Text = "X", ForeColor = Color.Red, FlatStyle = FlatStyle.Flat, Font = new Font("Segoe UI", 10, FontStyle.Bold), Size = new Size(30, 30), Location = new Point(270, 5), Cursor = Cursors.Hand, BackColor = Color.Transparent };
                     btnDel.FlatAppearance.BorderSize = 0;
                     btnDel.Click += (s, e) => { ventaActual.Detalles.Remove(d); UpdateCartUI(); };
 
@@ -303,7 +264,6 @@ namespace STOCKPAP.Views
                     pnlItem.Controls.Add(lblUnit);
                     pnlItem.Controls.Add(lblSub);
                     pnlItem.Controls.Add(btnDel);
-
                     gridCarrito.Controls.Add(pnlItem);
 
                     subtotal += d.Subtotal;
@@ -314,34 +274,41 @@ namespace STOCKPAP.Views
             ventaActual.Subtotal = subtotal;
             ventaActual.Iva = subtotal * 0.16m;
             ventaActual.Total = subtotal + ventaActual.Iva;
-
             lblSubtotal.Text = $"${ventaActual.Subtotal:0.00}";
             lblIva.Text = $"${ventaActual.Iva:0.00}";
             lblTotal.Text = $"${ventaActual.Total:0.00}";
-            lblItemsCount.Text = count == 1 ? "1 artículo" : $"{count} artículos";
+            lblItemsCount.Text = count == 1 ? "1 articulo" : $"{count} articulos";
         }
 
         private void BtnProcesar_Click(object sender, EventArgs e)
         {
-            if (ventaActual.Detalles.Count == 0)
+            if (!puedeVender)
             {
-                MessageBox.Show("El carrito está vacío.", "Aviso", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                MessageBox.Show("Tu rol es de consulta. No puedes procesar ventas.", "Acceso restringido", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 return;
             }
 
-            CheckoutForm checkout = new CheckoutForm(ventaActual);
-            checkout.ShowDialog();
+            if (ventaActual.Detalles.Count == 0)
+            {
+                MessageBox.Show("El carrito esta vacio.", "Aviso", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
 
-            if (checkout.VentaConfirmada)
+            CheckoutForm checkout = new CheckoutForm(ventaActual, AutorizarCancelacion);
+            checkout.ShowDialog(this);
+
+            if (checkout.VentaCancelada)
+            {
+                LimpiarCarrito();
+                MessageBox.Show("Venta cancelada. El carrito se limpio automaticamente.", "Cancelacion realizada", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            }
+            else if (checkout.VentaConfirmada)
             {
                 if (repoVenta.RegistrarVenta(ventaActual))
                 {
-                    // Notificar a todas las vistas suscritas (Reportes, Movimientos, etc.)
                     AppEvents.OnVentaRealizada();
-
-                    ventaActual = new Venta();
-                    UpdateCartUI();
-                    LoadProductos(); // Refresh stock en la vista actual
+                    LimpiarCarrito();
+                    LoadProductos();
                 }
                 else
                 {
@@ -349,6 +316,45 @@ namespace STOCKPAP.Views
                 }
             }
         }
+
+        private void CancelarVentaActual()
+        {
+            if (ventaActual.Detalles.Count == 0)
+                return;
+
+            if (!AutorizarCancelacion())
+                return;
+
+            LimpiarCarrito();
+            MessageBox.Show("Venta cancelada. El carrito se limpio automaticamente.", "Cancelacion realizada", MessageBoxButtons.OK, MessageBoxIcon.Information);
+        }
+
+        private void LimpiarCarrito()
+        {
+            ventaActual = new Venta();
+            UpdateCartUI();
+        }
+
+        private bool AutorizarCancelacion()
+        {
+            if (EsAdmin())
+                return true;
+
+            using (var form = new AdminAuthorizationForm())
+            {
+                form.ShowDialog(this);
+                return form.Autorizado;
+            }
+        }
+
+        private bool EsAdmin()
+        {
+            return currentUser != null && string.Equals(currentUser.Rol, "Admin", StringComparison.OrdinalIgnoreCase);
+        }
+
+        private bool EsVentas()
+        {
+            return currentUser != null && string.Equals(currentUser.Rol, "Ventas", StringComparison.OrdinalIgnoreCase);
+        }
     }
 }
-

@@ -72,7 +72,8 @@ CREATE TABLE Detalle_Ventas (
 -- Insertar datos de prueba
 INSERT INTO Usuarios (Username, Password, Rol) VALUES 
 ('administrador', 'wendy123', 'Admin'),
-('cajero', 'cajero123', 'Cajero');
+('cajero', 'cajero123', 'Ventas'),
+('consulta', 'consulta123', 'Consulta');
 
 INSERT INTO Productos (Nombre, Categoria, PrecioCompra, PrecioVenta, Stock, StockMinimo, ImagePath) VALUES 
 ('Cuaderno Profesional 100 hojas', 'Cuadernos', 15.00, 35.00, 150, 20, 'cuaderno.png'),

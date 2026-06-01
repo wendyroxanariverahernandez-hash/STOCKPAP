@@ -13,9 +13,11 @@ namespace STOCKPAP.Views
         private ProveedorRepository repo;
         private Label lblSubtitle;
         private TextBox txtBuscar;
+        private bool puedeEditar;
 
-        public ProveedoresView()
+        public ProveedoresView(bool puedeEditar = true)
         {
+            this.puedeEditar = puedeEditar;
             repo = new ProveedorRepository();
             InitializeComponent();
             LoadData();
@@ -61,6 +63,7 @@ namespace STOCKPAP.Views
                 Cursor = Cursors.Hand
             };
             btnNuevo.Click += BtnNuevo_Click;
+            btnNuevo.Visible = puedeEditar;
             this.Controls.Add(btnNuevo);
 
             // ── Barra de búsqueda ────────────────────────────────────────────
@@ -232,7 +235,7 @@ namespace STOCKPAP.Views
             };
             btnEditar.FlatAppearance.BorderColor = Color.FromArgb(180, 200, 255);
             btnEditar.Click += (s, e) => EditarProveedor(p);
-            card.Controls.Add(btnEditar);
+            if (puedeEditar) card.Controls.Add(btnEditar);
 
             Button btnEliminar = new Button
             {
@@ -247,7 +250,7 @@ namespace STOCKPAP.Views
             };
             btnEliminar.FlatAppearance.BorderColor = Color.FromArgb(255, 180, 180);
             btnEliminar.Click += (s, e) => EliminarProveedor(p);
-            card.Controls.Add(btnEliminar);
+            if (puedeEditar) card.Controls.Add(btnEliminar);
 
             return card;
         }

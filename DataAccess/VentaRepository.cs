@@ -109,13 +109,14 @@ namespace STOCKPAP.DataAccess
 
                             // Registrar Movimiento
                             using (var cmdMov = new NpgsqlCommand(
-                                "INSERT INTO Movimientos (Tipo, ProductoId, Cantidad, StockAnterior, StockNuevo, Motivo) VALUES ('Salida', @p, @c, @sa, @sn, 'Venta a cliente')",
+                                "INSERT INTO Movimientos (Tipo, ProductoId, Cantidad, StockAnterior, StockNuevo, Motivo) VALUES ('Salida', @p, @c, @sa, @sn, @m)",
                                 conn, transaction))
                             {
                                 cmdMov.Parameters.AddWithValue("p",  detalle.ProductoId);
                                 cmdMov.Parameters.AddWithValue("c",  -detalle.Cantidad);
                                 cmdMov.Parameters.AddWithValue("sa", stockAnterior);
                                 cmdMov.Parameters.AddWithValue("sn", stockNuevo);
+                                cmdMov.Parameters.AddWithValue("m", $"Venta #{ventaId}: {detalle.ProductoNombre} x{detalle.Cantidad}");
                                 cmdMov.ExecuteNonQuery();
                             }
                         }

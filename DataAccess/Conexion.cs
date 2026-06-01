@@ -1,4 +1,3 @@
-using System;
 using System.Configuration;
 using Npgsql;
 
@@ -10,11 +9,12 @@ namespace STOCKPAP.DataAccess
         private static Conexion _instance;
         private static readonly object _lock = new object();
 
-        // Constructor privado para el Singleton
         private Conexion()
         {
-            // Puedes cambiar esto para usar ConfigurationManager si lo prefieres
-            connectionString = "Server=localhost;Port=5432;Database=stockpap_db;User Id=postgres;Password=postgres;";
+            var configuredConnection = ConfigurationManager.ConnectionStrings["StockPapDb"];
+            connectionString = configuredConnection != null
+                ? configuredConnection.ConnectionString
+                : "Server=localhost;Port=5432;Database=stockpap_db;User Id=postgres;Password=postgres;";
         }
 
         public static Conexion Instance

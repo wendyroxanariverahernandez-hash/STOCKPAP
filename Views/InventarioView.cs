@@ -15,9 +15,11 @@ namespace STOCKPAP.Views
         private TextBox txtBuscar;
         private Label lblSubtitle;
         private string _categoriaActiva = "Todas";
+        private bool puedeEditar;
 
-        public InventarioView()
+        public InventarioView(bool puedeEditar = true)
         {
+            this.puedeEditar = puedeEditar;
             repo = new ProductoRepository();
             InitializeComponent();
             LoadProductos();
@@ -63,6 +65,7 @@ namespace STOCKPAP.Views
                 Cursor = Cursors.Hand
             };
             btnAgregar.Click += BtnAgregar_Click;
+            btnAgregar.Visible = puedeEditar;
             this.Controls.Add(btnAgregar);
 
             // ── Panel búsqueda + filtros ─────────────────────────────────────
@@ -308,7 +311,7 @@ namespace STOCKPAP.Views
             };
             btnEditar.FlatAppearance.BorderColor = Color.FromArgb(180, 200, 255);
             btnEditar.Click += (s, e) => EditarProducto(p);
-            card.Controls.Add(btnEditar);
+            if (puedeEditar) card.Controls.Add(btnEditar);
 
             Button btnEliminar = new Button
             {
@@ -323,7 +326,7 @@ namespace STOCKPAP.Views
             };
             btnEliminar.FlatAppearance.BorderColor = Color.FromArgb(255, 180, 180);
             btnEliminar.Click += (s, e) => EliminarProducto(p);
-            card.Controls.Add(btnEliminar);
+            if (puedeEditar) card.Controls.Add(btnEliminar);
 
             return card;
         }

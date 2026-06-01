@@ -15,10 +15,11 @@
   </PropertyGroup>
 
   <ItemGroup>
-  </ItemGroup>
+  </ItemGroup> 
 
   <ItemGroup>
-    <PackageReference Include="Npgsql" Version="4.1.12" />
+    <PackageReference Include="Npgsql" Version="4.1.14" />
+    <PackageReference Include="System.Configuration.ConfigurationManager" Version="8.0.0" />
   </ItemGroup>
 
 </Project>
