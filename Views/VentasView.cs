@@ -44,21 +44,46 @@ namespace STOCKPAP.Views
             Panel panelIzquierdo = new Panel { Dock = DockStyle.Fill, Padding = new Padding(0, 0, 20, 0) };
             this.Controls.Add(panelIzquierdo);
 
+            Panel pnlTopIzq = new Panel { Dock = DockStyle.Top, Height = 150 };
+            panelIzquierdo.Controls.Add(pnlTopIzq);
+
             Label lblTitle = new Label
             {
                 Text = puedeVender ? "Nueva Venta" : "Consulta de Productos",
                 Font = new Font("Segoe UI", 24, FontStyle.Bold),
-                Location = new Point(0, 30),
+                Location = new Point(0, 20),
                 AutoSize = true
             };
-            panelIzquierdo.Controls.Add(lblTitle);
+            pnlTopIzq.Controls.Add(lblTitle);
+
+            // Botón Cerrar Sesión
+            Button btnLogoutVentas = new Button
+            {
+                Text = "Cerrar Sesión",
+                Font = new Font("Segoe UI", 9, FontStyle.Bold),
+                FlatStyle = FlatStyle.Flat,
+                Size = new Size(130, 30),
+                Location = new Point(pnlTopIzq.Width - 140, 22),
+                BackColor = Color.FromArgb(220, 50, 50),
+                ForeColor = Color.White,
+                Cursor = Cursors.Hand,
+                Anchor = AnchorStyles.Top | AnchorStyles.Right
+            };
+            btnLogoutVentas.FlatAppearance.BorderSize = 0;
+            btnLogoutVentas.Click += (s, e) => {
+                if (MessageBox.Show("¿Seguro que deseas cerrar sesión?", "Cerrar Sesión", MessageBoxButtons.YesNo, MessageBoxIcon.Question) == DialogResult.Yes)
+                    System.Windows.Forms.Application.Restart();
+            };
+            pnlTopIzq.Controls.Add(btnLogoutVentas);
 
             RoundedPanel searchPanel = new RoundedPanel
             {
-                Size = new Size(500, 45),
-                Location = new Point(0, 90),
+                Height = 45,
+                Location = new Point(0, 80),
                 BackColor = Color.White,
-                BorderRadius = 15
+                BorderRadius = 15,
+                Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right,
+                Width = panelIzquierdo.Width - 40
             };
             txtBuscar = new TextBox
             {
@@ -73,16 +98,18 @@ namespace STOCKPAP.Views
             txtBuscar.Leave += (s, e) => { if (string.IsNullOrWhiteSpace(txtBuscar.Text)) { txtBuscar.Text = "Buscar producto por nombre..."; txtBuscar.ForeColor = Color.Gray; } };
             txtBuscar.TextChanged += (s, e) => { if (txtBuscar.Text != "Buscar producto por nombre...") LoadProductos(txtBuscar.Text); };
             searchPanel.Controls.Add(txtBuscar);
-            panelIzquierdo.Controls.Add(searchPanel);
+            pnlTopIzq.Controls.Add(searchPanel);
+
+            Panel pnlFillIzq = new Panel { Dock = DockStyle.Fill, Padding = new Padding(0, 10, 0, 10) };
+            panelIzquierdo.Controls.Add(pnlFillIzq);
+            pnlFillIzq.BringToFront();
 
             gridProductos = new FlowLayoutPanel
             {
-                Location = new Point(0, 160),
-                Size = new Size(600, 500),
-                AutoScroll = true,
-                Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right
+                Dock = DockStyle.Fill,
+                AutoScroll = true
             };
-            panelIzquierdo.Controls.Add(gridProductos);
+            pnlFillIzq.Controls.Add(gridProductos);
 
             Panel panelDerecho = new Panel { Dock = DockStyle.Right, Width = 350, BackColor = Color.White };
             this.Controls.Add(panelDerecho);
@@ -307,6 +334,11 @@ namespace STOCKPAP.Views
                 if (repoVenta.RegistrarVenta(ventaActual))
                 {
                     AppEvents.OnVentaRealizada();
+                    var res = MessageBox.Show("¿Deseas generar el ticket de esta venta?", "Ticket de Venta", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
+                    if (res == DialogResult.Yes)
+                    {
+                        GenerarTicketVenta();
+                    }
                     LimpiarCarrito();
                     LoadProductos();
                 }
@@ -315,6 +347,33 @@ namespace STOCKPAP.Views
                     MessageBox.Show("Error al registrar la venta.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 }
             }
+        }
+
+        private void GenerarTicketVenta()
+        {
+            var sb = new System.Text.StringBuilder();
+            sb.AppendLine("========================================");
+            sb.AppendLine("           TICKET DE VENTA");
+            sb.AppendLine("========================================");
+            sb.AppendLine($"Fecha: {DateTime.Now:dd/MM/yyyy HH:mm:ss}");
+            sb.AppendLine($"Usuario: {currentUser?.Username}");
+            sb.AppendLine("----------------------------------------");
+            sb.AppendLine("CANT | PRODUCTO             | SUBTOTAL");
+            sb.AppendLine("----------------------------------------");
+            foreach (var d in ventaActual.Detalles)
+            {
+                string pName = d.ProductoNombre.Length > 20 ? d.ProductoNombre.Substring(0, 20) : d.ProductoNombre.PadRight(20);
+                sb.AppendLine($"{d.Cantidad.ToString().PadRight(4)} | {pName} | ${d.Subtotal:0.00}");
+            }
+            sb.AppendLine("----------------------------------------");
+            sb.AppendLine($"Subtotal: ${ventaActual.Subtotal:0.00}");
+            sb.AppendLine($"IVA (16%): ${ventaActual.Iva:0.00}");
+            sb.AppendLine($"TOTAL:    ${ventaActual.Total:0.00}");
+            sb.AppendLine("========================================");
+            sb.AppendLine("    ¡GRACIAS POR SU COMPRA!");
+            sb.AppendLine("========================================");
+            
+            STOCKPAP.Utilities.Exportar.GuardarArchivo("Ticket_Venta", "Archivo de texto|*.txt", ".txt", sb.ToString());
         }
 
         private void CancelarVentaActual()

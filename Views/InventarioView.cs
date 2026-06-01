@@ -30,6 +30,10 @@ namespace STOCKPAP.Views
             this.BackColor = Color.FromArgb(245, 247, 250);
             this.Padding = new Padding(30);
 
+            // ── Contenedor Superior (Título, Filtros) ───────────────────────
+            Panel pnlTop = new Panel { Dock = DockStyle.Top, Height = 230, Padding = new Padding(30, 30, 30, 0) };
+            this.Controls.Add(pnlTop);
+
             // ── Título ──────────────────────────────────────────────────────
             Label lblTitle = new Label
             {
@@ -37,9 +41,9 @@ namespace STOCKPAP.Views
                 Font = new Font("Segoe UI", 24, FontStyle.Bold),
                 ForeColor = Color.FromArgb(20, 20, 40),
                 AutoSize = true,
-                Location = new Point(30, 30)
+                Location = new Point(30, 20)
             };
-            this.Controls.Add(lblTitle);
+            pnlTop.Controls.Add(lblTitle);
 
             lblSubtitle = new Label
             {
@@ -47,16 +51,16 @@ namespace STOCKPAP.Views
                 Font = new Font("Segoe UI", 11),
                 ForeColor = Color.Gray,
                 AutoSize = true,
-                Location = new Point(35, 72)
+                Location = new Point(35, 62)
             };
-            this.Controls.Add(lblSubtitle);
+            pnlTop.Controls.Add(lblSubtitle);
 
             // ── Botón Agregar ────────────────────────────────────────────────
             RoundedButton btnAgregar = new RoundedButton
             {
                 Text = "➕  Agregar Producto",
                 Size = new Size(190, 42),
-                Location = new Point(this.Width - 220, 35),
+                Location = new Point(pnlTop.Width - 220, 25),
                 BackColor = Color.FromArgb(30, 96, 255),
                 ForeColor = Color.White,
                 Font = new Font("Segoe UI", 10, FontStyle.Bold),
@@ -66,18 +70,19 @@ namespace STOCKPAP.Views
             };
             btnAgregar.Click += BtnAgregar_Click;
             btnAgregar.Visible = puedeEditar;
-            this.Controls.Add(btnAgregar);
+            pnlTop.Controls.Add(btnAgregar);
 
             // ── Panel búsqueda + filtros ─────────────────────────────────────
             RoundedPanel panelFiltros = new RoundedPanel
             {
-                Size = new Size(800, 110),
-                Location = new Point(30, 115),
+                Height = 110,
+                Location = new Point(30, 105),
                 BackColor = Color.White,
                 BorderRadius = 12,
-                Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right
+                Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right,
+                Width = pnlTop.Width - 60
             };
-            this.Controls.Add(panelFiltros);
+            pnlTop.Controls.Add(panelFiltros);
 
             // Icono búsqueda
             Label lblLupa = new Label
@@ -164,16 +169,18 @@ namespace STOCKPAP.Views
             }
 
             // ── Grid de productos ────────────────────────────────────────────
+            Panel pnlFill = new Panel { Dock = DockStyle.Fill, Padding = new Padding(30, 0, 30, 30) };
+            this.Controls.Add(pnlFill);
+            pnlFill.BringToFront();
+
             gridProductos = new FlowLayoutPanel
             {
-                Location = new Point(30, 240),
-                Size = new Size(800, 500),
+                Dock = DockStyle.Fill,
                 AutoScroll = true,
-                Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right,
                 BackColor = Color.Transparent,
                 Padding = new Padding(0, 5, 0, 5)
             };
-            this.Controls.Add(gridProductos);
+            pnlFill.Controls.Add(gridProductos);
         }
 
         // ── Carga de datos ───────────────────────────────────────────────────

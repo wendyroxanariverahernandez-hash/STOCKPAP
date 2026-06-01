@@ -1,0 +1,961 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>STOCKPAP - Prototipo de Baja Fidelidad (Wireframe)</title>
+    <!-- Google Fonts: Inter para la UI, Caveat para notas adhesivas -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@400..700&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+    <!-- PANTALLA DE LOGIN (Modo Inicial o Desconectado) -->
+    <div id="login-screen" class="view-screen">
+        <div class="wireframe-container login-layout">
+            <!-- Nota Adhesiva en el Login -->
+            <div class="sticky-note note-login">
+                <span class="pin">📌</span>
+                <h4>Nota de Diseño [Login]</h4>
+                <p>El login restringe el acceso al sistema. Soporta roles de: <strong>Admin</strong> y <strong>Cajero</strong>.</p>
+                <div class="note-meta">Por: Guillermina</div>
+            </div>
+
+            <div class="wireframe-box login-card">
+                <div class="wireframe-logo-placeholder">
+                    <div class="placeholder-cross"></div>
+                    <span>[LOGO STOCKPAP]</span>
+                </div>
+                <h2>STOCKPAP</h2>
+                <p class="subtitle">[Sistema de Control de Inventario & Ventas]</p>
+                
+                <div class="wireframe-form-group">
+                    <label for="login-username">Usuario</label>
+                    <input type="text" id="login-username" class="wireframe-input" placeholder="ej. administrador / cajero" value="administrador">
+                </div>
+                
+                <div class="wireframe-form-group">
+                    <label for="login-password">Contraseña</label>
+                    <input type="password" id="login-password" class="wireframe-input" placeholder="••••••••" value="wendy123">
+                </div>
+
+                <div id="login-error-msg" class="error-text"></div>
+                
+                <button id="btn-login-submit" class="wireframe-btn btn-primary">Ingresar al Sistema</button>
+                
+                <div class="login-credentials-help">
+                    <p><strong>Credenciales de Prueba (DB Setup):</strong></p>
+                    <ul>
+                        <li>Admin: <code>administrador</code> / <code>wendy123</code></li>
+                        <li>Cajero: <code>cajero</code> / <code>cajero123</code></li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- PANTALLA PRINCIPAL (Modo Autenticado) -->
+    <div id="main-screen" class="view-screen hidden">
+        <!-- ENCABEZADO (Header) -->
+        <header class="wireframe-header">
+            <div class="header-left">
+                <button id="btn-sidebar-toggle" class="header-action-btn" title="Colapsar Menú">☰</button>
+                <div class="header-logo-section">
+                    <span class="header-title">STOCKPAP</span>
+                    <span class="header-badge">[PROTOTIPO BAJA FIDELIDAD]</span>
+                </div>
+            </div>
+            <div class="header-right">
+                <span id="current-user-info" class="user-info-text">Rol: [Admin] | Usuario: [administrador]</span>
+                <span id="current-date-info" class="date-info-text">Fecha: [27/05/2026]</span>
+                <button id="btn-logout" class="wireframe-btn btn-outline btn-sm">Salir</button>
+            </div>
+        </header>
+
+        <!-- CONTENEDOR PRINCIPAL (Sidebar + Contenido Central) -->
+        <div class="app-layout">
+            <!-- BARRA LATERAL (Sidebar / Menú de Navegación) -->
+            <aside id="app-sidebar" class="wireframe-sidebar">
+                <nav class="sidebar-nav">
+                    <a href="#" class="nav-item active" data-target="view-dashboard">
+                        <span class="nav-icon">📊</span> <span class="nav-text">Dashboard / Resumen</span>
+                    </a>
+                    <a href="#" class="nav-item" data-target="view-ventas">
+                        <span class="nav-icon">🛒</span> <span class="nav-text">Punto de Venta</span>
+                    </a>
+                    <a href="#" class="nav-item" data-target="view-inventario">
+                        <span class="nav-icon">📦</span> <span class="nav-text">Inventario / Catálogo</span>
+                    </a>
+                    <a href="#" class="nav-item" data-target="view-movimientos">
+                        <span class="nav-icon">🔄</span> <span class="nav-text">Movimientos</span>
+                    </a>
+                    <a href="#" class="nav-item" data-target="view-proveedores">
+                        <span class="nav-icon">🚚</span> <span class="nav-text">Proveedores</span>
+                    </a>
+                    <a href="#" class="nav-item" data-target="view-reportes">
+                        <span class="nav-icon">📈</span> <span class="nav-text">Reportes</span>
+                    </a>
+                    
+                    <div class="nav-divider"></div>
+                    
+                    <a href="#" class="nav-item special-nav" data-target="view-mapa-navegacion">
+                        <span class="nav-icon">🗺️</span> <span class="nav-text">Flujo de Navegación</span>
+                    </a>
+                </nav>
+
+                <div class="sidebar-footer">
+                    <div class="team-avatars">
+                        <span class="avatar-tag" title="Wendy">W</span>
+                        <span class="avatar-tag" title="Enoc">E</span>
+                        <span class="avatar-tag" title="Guillermina">G</span>
+                    </div>
+                    <span class="team-label">Equipo de Diseño</span>
+                </div>
+            </aside>
+
+            <!-- ÁREA PRINCIPAL DE CONTENIDO (Main Content Area) -->
+            <main id="app-content-area" class="wireframe-content-panel">
+                
+                <!-- SECCIÓN 1: DASHBOARD / HOME -->
+                <section id="view-dashboard" class="content-section">
+                    <!-- Notas Adhesivas Dashboard -->
+                    <div class="sticky-note note-dashboard">
+                        <span class="pin">📌</span>
+                        <h4>Nota de Diseño [Dashboard]</h4>
+                        <p>Los KPIs principales muestran alertas críticas. Al hacer clic en "Stock Bajo" redirige a Inventario filtrado.</p>
+                        <div class="note-meta">Por: Enoc</div>
+                    </div>
+
+                    <div class="section-header">
+                        <div>
+                            <h1>Dashboard General</h1>
+                            <p class="section-description">Resumen del estado de la papelería y acciones rápidas.</p>
+                        </div>
+                        <div class="actions-group">
+                            <button class="wireframe-btn btn-primary" onclick="switchSection('view-ventas')">⚡ Nueva Venta</button>
+                        </div>
+                    </div>
+
+                    <!-- Tarjetas de Métricas (KPI Cards) -->
+                    <div class="kpi-grid">
+                        <div class="kpi-card pointer" onclick="switchSection('view-inventario')">
+                            <span class="kpi-icon">📦</span>
+                            <div class="kpi-info">
+                                <h3>Total Productos</h3>
+                                <span class="kpi-val" id="dashboard-total-products">8</span>
+                                <span class="kpi-lbl">Registrados en catálogo</span>
+                            </div>
+                        </div>
+                        <div class="kpi-card pointer warning" onclick="filterInventarioBajoStock()">
+                            <span class="kpi-icon">⚠</span>
+                            <div class="kpi-info">
+                                <h3>Stock Bajo</h3>
+                                <span class="kpi-val" id="dashboard-low-stock">2</span>
+                                <span class="kpi-lbl">Requieren reabastecer</span>
+                            </div>
+                        </div>
+                        <div class="kpi-card pointer" onclick="switchSection('view-ventas')">
+                            <span class="kpi-icon">💵</span>
+                            <div class="kpi-info">
+                                <h3>Ventas del Día</h3>
+                                <span class="kpi-val" id="dashboard-today-sales">$470.00</span>
+                                <span class="kpi-lbl">4 transacciones</span>
+                            </div>
+                        </div>
+                        <div class="kpi-card pointer" onclick="switchSection('view-proveedores')">
+                            <span class="kpi-icon">🚚</span>
+                            <div class="kpi-info">
+                                <h3>Proveedores</h3>
+                                <span class="kpi-val" id="dashboard-total-providers">2</span>
+                                <span class="kpi-lbl">Proveedores activos</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Fila con Gráficas y Notificaciones -->
+                    <div class="dashboard-row">
+                        <!-- Gráfico Mock de Ventas Semanales -->
+                        <div class="wireframe-box flex-2">
+                            <h3>[GRÁFICO] Ventas de la Semana</h3>
+                            <p class="box-subtitle">Distribución monetaria de transacciones diarias</p>
+                            <div class="wireframe-chart-placeholder-line">
+                                <!-- Dibujo SVG de una gráfica lineal tipo wireframe -->
+                                <svg class="chart-svg" viewBox="0 0 500 200">
+                                    <path d="M 50 150 L 450 150" stroke="#cccccc" stroke-width="2" />
+                                    <path d="M 50 50 L 50 150" stroke="#cccccc" stroke-width="2" />
+                                    <!-- Grid lines -->
+                                    <line x1="50" y1="116" x2="450" y2="116" stroke="#e5e7eb" stroke-dasharray="4" />
+                                    <line x1="50" y1="83" x2="450" y2="83" stroke="#e5e7eb" stroke-dasharray="4" />
+                                    <line x1="50" y1="50" x2="450" y2="50" stroke="#e5e7eb" stroke-dasharray="4" />
+                                    <!-- Chart lines -->
+                                    <path d="M 50 130 L 116 110 L 182 140 L 248 90 L 314 70 L 380 120 L 450 50" fill="none" stroke="#6b7280" stroke-width="3" stroke-linecap="round" />
+                                    <!-- Points -->
+                                    <circle cx="50" cy="130" r="5" fill="#374151" />
+                                    <circle cx="116" cy="110" r="5" fill="#374151" />
+                                    <circle cx="182" cy="140" r="5" fill="#374151" />
+                                    <circle cx="248" cy="90" r="5" fill="#374151" />
+                                    <circle cx="314" cy="70" r="5" fill="#374151" />
+                                    <circle cx="380" cy="120" r="5" fill="#374151" />
+                                    <circle cx="450" cy="50" r="5" fill="#374151" />
+                                    <!-- Labels -->
+                                    <text x="50" y="170" class="chart-text" text-anchor="middle">Lun</text>
+                                    <text x="116" y="170" class="chart-text" text-anchor="middle">Mar</text>
+                                    <text x="182" y="170" class="chart-text" text-anchor="middle">Mié</text>
+                                    <text x="248" y="170" class="chart-text" text-anchor="middle">Jue</text>
+                                    <text x="314" y="170" class="chart-text" text-anchor="middle">Vie</text>
+                                    <text x="380" y="170" class="chart-text" text-anchor="middle">Sáb</text>
+                                    <text x="450" y="170" class="chart-text" text-anchor="middle">Dom</text>
+                                    
+                                    <text x="40" y="130" class="chart-text" text-anchor="end">$200</text>
+                                    <text x="40" y="90" class="chart-text" text-anchor="end">$600</text>
+                                    <text x="40" y="50" class="chart-text" text-anchor="end">$1000</text>
+                                </svg>
+                            </div>
+                        </div>
+
+                        <!-- Panel de Últimos Movimientos -->
+                        <div class="wireframe-box flex-1">
+                            <h3>Actividad Reciente</h3>
+                            <p class="box-subtitle">Últimas entradas/salidas de inventario</p>
+                            <ul class="activity-list" id="dashboard-activity-list">
+                                <!-- Carga dinámica en app.js -->
+                            </ul>
+                            <button class="wireframe-btn btn-outline btn-full-width btn-sm" onclick="switchSection('view-movimientos')">Ver todo el historial</button>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- SECCIÓN 2: PUNTO DE VENTA (VENTAS) -->
+                <section id="view-ventas" class="content-section hidden">
+                    <div class="sticky-note note-ventas">
+                        <span class="pin">📌</span>
+                        <h4>Nota de Diseño [Venta]</h4>
+                        <p>Simula un código de barras buscando o seleccionando tarjetas. El ticket se calcula automáticamente al modificar cantidades.</p>
+                        <div class="note-meta">Por: Wendy</div>
+                    </div>
+
+                    <div class="section-header">
+                        <div>
+                            <h1>Punto de Venta (Ventas)</h1>
+                            <p class="section-description">Registro ágil de compras de clientes en el mostrador.</p>
+                        </div>
+                    </div>
+
+                    <div class="checkout-layout">
+                        <!-- Izquierda: Catálogo Rápido -->
+                        <div class="checkout-catalog wireframe-box">
+                            <div class="catalog-filters">
+                                <input type="text" id="sales-search-input" class="wireframe-input" placeholder="🔍 Buscar por nombre o código de barras...">
+                                <select id="sales-category-select" class="wireframe-select">
+                                    <option value="Todas">Todas las categorías</option>
+                                    <option value="Cuadernos">Cuadernos</option>
+                                    <option value="Escritura">Escritura</option>
+                                    <option value="Papel">Papel</option>
+                                    <option value="Marcadores">Marcadores</option>
+                                    <option value="Organización">Organización</option>
+                                    <option value="Adhesivos">Adhesivos</option>
+                                    <option value="Corte">Corte</option>
+                                </select>
+                            </div>
+
+                            <div class="sales-catalog-grid" id="sales-catalog-grid">
+                                <!-- Cargado dinámicamente en app.js -->
+                            </div>
+                        </div>
+
+                        <!-- Derecha: Ticket de Venta / Carrito -->
+                        <div class="checkout-ticket wireframe-box">
+                            <h3>Ticket de Venta</h3>
+                            <p class="box-subtitle">Productos listos para cobro</p>
+                            
+                            <div class="ticket-table-container">
+                                <table class="wireframe-table select-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Producto</th>
+                                            <th style="width: 70px;">Cant.</th>
+                                            <th>Precio</th>
+                                            <th>Subtotal</th>
+                                            <th></th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="sales-ticket-items">
+                                        <!-- Items del ticket cargados dinámicamente -->
+                                        <tr class="empty-row-msg">
+                                            <td colspan="5" style="text-align: center; color: #888; padding: 30px 10px;">
+                                                El ticket está vacío. Agrega productos desde el catálogo rápido.
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            <div class="ticket-totals">
+                                <div class="total-row">
+                                    <span>Subtotal:</span>
+                                    <span id="ticket-subtotal">$0.00</span>
+                                </div>
+                                <div class="total-row">
+                                    <span>IVA (16%):</span>
+                                    <span id="ticket-iva">$0.00</span>
+                                </div>
+                                <div class="total-row grand-total">
+                                    <span>Total:</span>
+                                    <span id="ticket-total">$0.00</span>
+                                </div>
+                            </div>
+
+                            <div class="ticket-actions">
+                                <button id="btn-clear-cart" class="wireframe-btn btn-outline" style="flex: 1;">Vaciar</button>
+                                <button id="btn-checkout-trigger" class="wireframe-btn btn-primary" style="flex: 2;">💳 Cobrar (F12)</button>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- SECCIÓN 3: INVENTARIO / CATALOGO -->
+                <section id="view-inventario" class="content-section hidden">
+                    <div class="sticky-note note-inventario">
+                        <span class="pin">📌</span>
+                        <h4>Nota de Diseño [Inventario]</h4>
+                        <p>Cada tarjeta indica visualmente si cuenta con suficiente stock o si requiere reabastecimiento (Stock Bajo).</p>
+                        <div class="note-meta">Por: Guillermina</div>
+                    </div>
+
+                    <div class="section-header">
+                        <div>
+                            <h1>Inventario de Productos</h1>
+                            <p class="section-description">Gestión física y precios del catálogo de papelería.</p>
+                        </div>
+                        <div class="actions-group">
+                            <button id="btn-add-product-modal" class="wireframe-btn btn-primary">➕ Agregar Producto</button>
+                        </div>
+                    </div>
+
+                    <!-- Panel de Filtros -->
+                    <div class="wireframe-box filters-panel">
+                        <div class="search-bar-row">
+                            <input type="text" id="inventory-search" class="wireframe-input" placeholder="🔍 Buscar por nombre o ID del producto...">
+                            <span class="inventory-status-indicator" id="inventory-status-summary">Cargando catálogo...</span>
+                        </div>
+                        <div class="category-pills" id="inventory-category-pills">
+                            <!-- Botones creados dinámicamente -->
+                        </div>
+                    </div>
+
+                    <!-- Grid de Tarjetas de Productos -->
+                    <div class="products-grid" id="inventory-products-grid">
+                        <!-- Tarjetas cargadas dinámicamente por app.js -->
+                    </div>
+                </section>
+
+                <!-- SECCIÓN 4: MOVIMIENTOS -->
+                <section id="view-movimientos" class="content-section hidden">
+                    <div class="sticky-note note-movimientos">
+                        <span class="pin">📌</span>
+                        <h4>Nota de Diseño [Movimientos]</h4>
+                        <p>Bitácora técnica e inalterable. Los registros de "Salida" se restan automáticamente y se registran al cerrar una venta.</p>
+                        <div class="note-meta">Por: Enoc</div>
+                    </div>
+
+                    <div class="section-header">
+                        <div>
+                            <h1>Movimientos de Stock</h1>
+                            <p class="section-description">Registro cronológico de entradas, salidas y ajustes manuales.</p>
+                        </div>
+                        <div class="actions-group">
+                            <button id="btn-add-movement-modal" class="wireframe-btn btn-primary">➕ Registrar Ajuste / Entrada</button>
+                        </div>
+                    </div>
+
+                    <div class="wireframe-box table-wrapper">
+                        <div class="table-actions-row">
+                            <div class="filter-inputs">
+                                <select id="movement-filter-type" class="wireframe-select">
+                                    <option value="Todos">Todos los tipos</option>
+                                    <option value="Entrada">Entrada</option>
+                                    <option value="Salida">Salida</option>
+                                    <option value="Ajuste">Ajuste</option>
+                                </select>
+                            </div>
+                            <span class="table-info-label" id="movements-count-lbl">Registros: 4</span>
+                        </div>
+
+                        <table class="wireframe-table">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Fecha</th>
+                                    <th>Tipo</th>
+                                    <th>Producto</th>
+                                    <th style="text-align: right;">Cantidad</th>
+                                    <th style="text-align: right;">Stock Ant.</th>
+                                    <th style="text-align: right;">Stock Nuevo</th>
+                                    <th>Motivo / Referencia</th>
+                                </tr>
+                            </thead>
+                            <tbody id="movements-table-body">
+                                <!-- Cargado dinámicamente por app.js -->
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+
+                <!-- SECCIÓN 5: PROVEEDORES -->
+                <section id="view-proveedores" class="content-section hidden">
+                    <div class="sticky-note note-proveedores">
+                        <span class="pin">📌</span>
+                        <h4>Nota de Diseño [Proveedores]</h4>
+                        <p>Relaciona qué proveedores suministran qué productos, optimizando la cadena de suministro al realizar reabastecimientos.</p>
+                        <div class="note-meta">Por: Wendy</div>
+                    </div>
+
+                    <div class="section-header">
+                        <div>
+                            <h1>Proveedores</h1>
+                            <p class="section-description">Directorio y empresas que abastecen a la papelería.</p>
+                        </div>
+                        <div class="actions-group">
+                            <button id="btn-add-provider-modal" class="wireframe-btn btn-primary">➕ Registrar Proveedor</button>
+                        </div>
+                    </div>
+
+                    <div class="wireframe-box table-wrapper">
+                        <table class="wireframe-table">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Empresa</th>
+                                    <th>Contacto</th>
+                                    <th>Teléfono</th>
+                                    <th>Correo Electrónico</th>
+                                    <th>Dirección</th>
+                                    <th>Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody id="providers-table-body">
+                                <!-- Cargado dinámicamente por app.js -->
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+
+                <!-- SECCIÓN 6: REPORTES -->
+                <section id="view-reportes" class="content-section hidden">
+                    <div class="sticky-note note-reportes">
+                        <span class="pin">📌</span>
+                        <h4>Nota de Diseño [Reportes]</h4>
+                        <p>Gráficos informativos tipo wireframe que demuestran la jerarquía de categorías más vendidas y estados de ganancias.</p>
+                        <div class="note-meta">Por: Guillermina</div>
+                    </div>
+
+                    <div class="section-header">
+                        <div>
+                            <h1>Reportes Financieros & Inventario</h1>
+                            <p class="section-description">Visualización estadística de ventas y rendimiento comercial.</p>
+                        </div>
+                        <div class="actions-group">
+                            <button class="wireframe-btn btn-outline" onclick="window.print()">🖨️ Exportar / Imprimir Reporte</button>
+                        </div>
+                    </div>
+
+                    <div class="reports-dashboard-grid">
+                        <div class="wireframe-box">
+                            <h3>Productos Más Vendidos</h3>
+                            <p class="box-subtitle">Porcentaje de ventas por categoría</p>
+                            <div class="wireframe-chart-placeholder-pie">
+                                <!-- Mock de gráfica de pastel con SVG -->
+                                <svg class="chart-svg" viewBox="0 0 200 200">
+                                    <!-- Circulo segmentado de wireframe -->
+                                    <circle cx="100" cy="100" r="80" fill="none" stroke="#f3f4f6" stroke-width="30" />
+                                    <!-- Escritura 45% (stroke-dasharray="125 500") -->
+                                    <circle cx="100" cy="100" r="80" fill="none" stroke="#4b5563" stroke-width="30" 
+                                            stroke-dasharray="125 502" stroke-dashoffset="0" transform="rotate(-90 100 100)" />
+                                    <!-- Cuadernos 30% (stroke-dasharray="150 500") -->
+                                    <circle cx="100" cy="100" r="80" fill="none" stroke="#9ca3af" stroke-width="30" 
+                                            stroke-dasharray="150 502" stroke-dashoffset="-125" transform="rotate(-90 100 100)" />
+                                    <!-- Papel 15% (stroke-dasharray="75 500") -->
+                                    <circle cx="100" cy="100" r="80" fill="none" stroke="#d1d5db" stroke-width="30" 
+                                            stroke-dasharray="75 502" stroke-dashoffset="-275" transform="rotate(-90 100 100)" />
+                                    <!-- Otros 10% (stroke-dasharray="50 500") -->
+                                    <circle cx="100" cy="100" r="80" fill="none" stroke="#374151" stroke-width="30" 
+                                            stroke-dasharray="50 502" stroke-dashoffset="-350" transform="rotate(-90 100 100)" />
+                                    
+                                    <text x="100" y="105" text-anchor="middle" font-size="12" font-weight="bold" fill="#333">[CATEGORÍAS]</text>
+                                </svg>
+                                <div class="pie-labels">
+                                    <div class="pie-lbl-item"><span class="color-box bg-dark"></span> Escritura (45%)</div>
+                                    <div class="pie-lbl-item"><span class="color-box bg-medium"></span> Cuadernos (30%)</div>
+                                    <div class="pie-lbl-item"><span class="color-box bg-light"></span> Papel (15%)</div>
+                                    <div class="pie-lbl-item"><span class="color-box bg-black"></span> Otros (10%)</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="wireframe-box">
+                            <h3>Resumen Financiero Acumulado</h3>
+                            <p class="box-subtitle">Historial de Ventas Históricas registradas</p>
+                            <table class="wireframe-table">
+                                <thead>
+                                    <tr>
+                                        <th>Fecha / ID Venta</th>
+                                        <th>Subtotal</th>
+                                        <th>IVA (16%)</th>
+                                        <th>Total Registrado</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="sales-history-tbody">
+                                    <!-- Cargado en app.js -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- SECCIÓN 7: MAPA DE NAVEGACIÓN -->
+                <section id="view-mapa-navegacion" class="content-section hidden">
+                    <div class="sticky-note note-flow">
+                        <span class="pin">📌</span>
+                        <h4>Nota de Diseño [Flujo]</h4>
+                        <p>Diagrama interactivo de arquitectura del sitio. Muestra cómo fluyen las pantallas y las acciones del prototipo.</p>
+                        <div class="note-meta">Por: Enoc</div>
+                    </div>
+
+                    <div class="section-header">
+                        <div>
+                            <h1>Mapa de Navegación del Prototipo</h1>
+                            <p class="section-description">Diagrama de flujo del sistema web STOCKPAP (Flujos e Interacciones).</p>
+                        </div>
+                    </div>
+
+                    <div class="wireframe-box navigation-map-canvas">
+                        <div class="map-grid">
+                            
+                            <!-- Estado Desconectado -->
+                            <div class="map-column">
+                                <h3 class="column-title">[1. Acceso y Seguridad]</h3>
+                                
+                                <div class="map-node active-node pointer" onclick="switchSection('login-screen-forced')">
+                                    <span class="node-id">P1</span>
+                                    <h4>Formulario Login</h4>
+                                    <p class="node-desc">Pantalla inicial de inicio de sesión.</p>
+                                    <span class="node-action">Cierra sesión para ver</span>
+                                </div>
+                            </div>
+
+                            <div class="map-connector-arrow">➡️</div>
+
+                            <!-- Dashboard Central -->
+                            <div class="map-column">
+                                <h3 class="column-title">[2. Panel Principal]</h3>
+                                
+                                <div class="map-node pointer" onclick="switchSection('view-dashboard')">
+                                    <span class="node-id">P2</span>
+                                    <h4>Dashboard / Home</h4>
+                                    <p class="node-desc">Resumen general, KPIs de inventario y accesos rápidos.</p>
+                                    <span class="node-action">Ir a Dashboard</span>
+                                </div>
+                            </div>
+
+                            <div class="map-connector-arrow">➡️</div>
+
+                            <!-- Pantallas de Negocio -->
+                            <div class="map-column flex-2">
+                                <h3 class="column-title">[3. Pantallas Secundarias e Interacciones]</h3>
+                                
+                                <div class="map-nodes-container">
+                                    
+                                    <div class="map-node-row">
+                                        <div class="map-node pointer" onclick="switchSection('view-ventas')">
+                                            <span class="node-id">P3-A</span>
+                                            <h4>Punto de Venta</h4>
+                                            <p class="node-desc">Carrito de compras y ticket.</p>
+                                            <span class="node-action">Ir a Ventas</span>
+                                        </div>
+                                        <div class="map-connector-arrow">➡️</div>
+                                        <div class="map-node secondary-node pointer" onclick="openCheckoutModalMock()">
+                                            <span class="node-id">F-A</span>
+                                            <h4>Modal Cobro</h4>
+                                            <p class="node-desc">Formulario de pago en efectivo.</p>
+                                            <span class="node-action">Abrir Formulario</span>
+                                        </div>
+                                    </div>
+
+                                    <div class="map-node-row">
+                                        <div class="map-node pointer" onclick="switchSection('view-inventario')">
+                                            <span class="node-id">P3-B</span>
+                                            <h4>Inventario / Catálogo</h4>
+                                            <p class="node-desc">Catálogo general de papelería.</p>
+                                            <span class="node-action">Ir a Inventario</span>
+                                        </div>
+                                        <div class="map-connector-arrow">➡️</div>
+                                        <div class="map-node secondary-node pointer" onclick="openProductModal(null)">
+                                            <span class="node-id">F-B</span>
+                                            <h4>Form. Producto</h4>
+                                            <p class="node-desc">Agregar/editar productos.</p>
+                                            <span class="node-action">Abrir Formulario</span>
+                                        </div>
+                                    </div>
+
+                                    <div class="map-node-row">
+                                        <div class="map-node pointer" onclick="switchSection('view-movimientos')">
+                                            <span class="node-id">P3-C</span>
+                                            <h4>Bitácora de Movs.</h4>
+                                            <p class="node-desc">Control detallado de stock.</p>
+                                            <span class="node-action">Ir a Movimientos</span>
+                                        </div>
+                                        <div class="map-connector-arrow">➡️</div>
+                                        <div class="map-node secondary-node pointer" onclick="openMovementModal()">
+                                            <span class="node-id">F-C</span>
+                                            <h4>Form. Movimiento</h4>
+                                            <p class="node-desc">Registro manual de ajustes.</p>
+                                            <span class="node-action">Abrir Formulario</span>
+                                        </div>
+                                    </div>
+
+                                    <div class="map-node-row">
+                                        <div class="map-node pointer" onclick="switchSection('view-proveedores')">
+                                            <span class="node-id">P3-D</span>
+                                            <h4>Proveedores</h4>
+                                            <p class="node-desc">Directorio de distribuidores.</p>
+                                            <span class="node-action">Ir a Proveedores</span>
+                                        </div>
+                                        <div class="map-connector-arrow">➡️</div>
+                                        <div class="map-node secondary-node pointer" onclick="openProviderModal()">
+                                            <span class="node-id">F-D</span>
+                                            <h4>Form. Proveedor</h4>
+                                            <p class="node-desc">Agregar nuevo contacto.</p>
+                                            <span class="node-action">Abrir Formulario</span>
+                                        </div>
+                                    </div>
+
+                                    <div class="map-node-row">
+                                        <div class="map-node pointer" onclick="switchSection('view-reportes')">
+                                            <span class="node-id">P3-E</span>
+                                            <h4>Reportes Financieros</h4>
+                                            <p class="node-desc">Gráficos de ventas y logs históricos.</p>
+                                            <span class="node-action">Ir a Reportes</span>
+                                        </div>
+                                    </div>
+
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Detalle de Flujos de Información -->
+                        <div class="flow-explanations">
+                            <h4>Explicación del Flujo de Interacción:</h4>
+                            <ul>
+                                <li><strong>Autenticación:</strong> El cajero o administrador se loguea en <strong>P1</strong>. Una vez autenticado, accede al Dashboard <strong>P2</strong>.</li>
+                                <li><strong>Ventas (Cajero):</strong> El usuario ingresa a <strong>P3-A</strong>, busca artículos en el catálogo rápido y los agrega al ticket. Al dar clic en 'Cobrar', se despliega el formulario modal de pago <strong>F-A</strong> para registrar efectivo y dar cambio. Al confirmar la venta, se actualizan las métricas del Dashboard (<strong>P2</strong>), se genera una salida automática en la bitácora de movimientos (<strong>P3-C</strong>), y se acumula en el reporte histórico (<strong>P3-E</strong>).</li>
+                                <li><strong>Inventario (Admin):</strong> El administrador gestiona existencias en <strong>P3-B</strong>. Puede abrir el modal <strong>F-B</strong> para crear o modificar un producto. Al registrarlo, el stock se actualiza inmediatamente en el catálogo rápido de ventas.</li>
+                                <li><strong>Cadena de Suministro:</strong> A través de <strong>P3-D</strong> se registran proveedores de papelería (modal <strong>F-D</strong>) que surten los cuadernos, lápices y papel.</li>
+                            </ul>
+                        </div>
+                    </div>
+                </section>
+
+            </main>
+        </div>
+
+        <!-- PIE DE PÁGINA (Footer) -->
+        <footer class="wireframe-footer">
+            <div class="footer-left">
+                <span>STOCKPAP &copy; 2026 - Taller de Ingeniería de Software (U3 - Prototipo de Baja Fidelidad)</span>
+            </div>
+            <div class="footer-right">
+                <span>Equipo: <strong>Wendy R. Rivera</strong>, <strong>Enoc H.</strong> &amp; <strong>Guillermina S.</strong></span>
+            </div>
+        </footer>
+    </div>
+
+
+    <!-- ==================== MODALES (FORMULARIOS) ==================== -->
+
+    <!-- MODAL 1: REGISTRO/EDICIÓN DE PRODUCTO -->
+    <div id="modal-product" class="wireframe-modal hidden">
+        <div class="modal-backdrop"></div>
+        <div class="modal-wrapper">
+            <div class="wireframe-box modal-content">
+                <div class="modal-header">
+                    <h3 id="product-modal-title">Registrar Producto</h3>
+                    <button class="modal-close-btn" onclick="closeModal('modal-product')">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <div class="sticky-note note-modal-prod">
+                        <span class="pin">📌</span>
+                        <p>Los campos con asterisco (*) son obligatorios en base de datos.</p>
+                        <div class="note-meta">Por: Wendy</div>
+                    </div>
+
+                    <form id="product-form" onsubmit="event.preventDefault();">
+                        <input type="hidden" id="prod-id">
+                        
+                        <div class="form-row-2">
+                            <div class="wireframe-form-group">
+                                <label for="prod-name">Nombre del Producto *</label>
+                                <input type="text" id="prod-name" class="wireframe-input" placeholder="ej. Sacapuntas Metálico" required>
+                            </div>
+                            <div class="wireframe-form-group">
+                                <label for="prod-category">Categoría *</label>
+                                <select id="prod-category" class="wireframe-select" required>
+                                    <option value="Cuadernos">Cuadernos</option>
+                                    <option value="Escritura">Escritura</option>
+                                    <option value="Papel">Papel</option>
+                                    <option value="Marcadores">Marcadores</option>
+                                    <option value="Organización">Organización</option>
+                                    <option value="Adhesivos">Adhesivos</option>
+                                    <option value="Corte">Corte</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="form-row-2">
+                            <div class="wireframe-form-group">
+                                <label for="prod-price-buy">Precio Compra ($) *</label>
+                                <input type="number" id="prod-price-buy" class="wireframe-input" step="0.01" min="0" placeholder="10.00" required>
+                            </div>
+                            <div class="wireframe-form-group">
+                                <label for="prod-price-sell">Precio Venta ($) *</label>
+                                <input type="number" id="prod-price-sell" class="wireframe-input" step="0.01" min="0" placeholder="18.00" required>
+                            </div>
+                        </div>
+
+                        <div class="form-row-2">
+                            <div class="wireframe-form-group">
+                                <label for="prod-stock">Existencia Inicial (Stock) *</label>
+                                <input type="number" id="prod-stock" class="wireframe-input" min="0" placeholder="50" required>
+                            </div>
+                            <div class="wireframe-form-group">
+                                <label for="prod-stock-min">Stock Mínimo *</label>
+                                <input type="number" id="prod-stock-min" class="wireframe-input" min="1" placeholder="10" value="10" required>
+                            </div>
+                        </div>
+
+                        <div class="wireframe-form-group">
+                            <label>Imagen del Producto</label>
+                            <div class="image-uploader-placeholder">
+                                <div class="placeholder-cross"></div>
+                                <span class="upload-icon">📷</span>
+                                <span class="upload-text">[ Haz clic para cargar imagen o escribe la ruta ]</span>
+                                <input type="text" id="prod-image-path" class="wireframe-input mt-2" placeholder="ej. sacapuntas.png">
+                            </div>
+                        </div>
+
+                        <div class="modal-footer-actions">
+                            <button type="button" class="wireframe-btn btn-outline" onclick="closeModal('modal-product')">Cancelar</button>
+                            <button type="button" id="btn-save-product" class="wireframe-btn btn-primary">Guardar Producto</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL 2: REGISTRO DE PROVEEDOR -->
+    <div id="modal-provider" class="wireframe-modal hidden">
+        <div class="modal-backdrop"></div>
+        <div class="modal-wrapper">
+            <div class="wireframe-box modal-content">
+                <div class="modal-header">
+                    <h3>Registrar Proveedor</h3>
+                    <button class="modal-close-btn" onclick="closeModal('modal-provider')">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <form id="provider-form" onsubmit="event.preventDefault();">
+                        <div class="wireframe-form-group">
+                            <label for="prov-company">Empresa / Distribuidora *</label>
+                            <input type="text" id="prov-company" class="wireframe-input" placeholder="ej. Norma México S.A." required>
+                        </div>
+                        
+                        <div class="wireframe-form-group">
+                            <label for="prov-contact">Nombre de Contacto</label>
+                            <input type="text" id="prov-contact" class="wireframe-input" placeholder="ej. Ing. Fernando López">
+                        </div>
+
+                        <div class="form-row-2">
+                            <div class="wireframe-form-group">
+                                <label for="prov-phone">Teléfono</label>
+                                <input type="tel" id="prov-phone" class="wireframe-input" placeholder="555-098-7654">
+                            </div>
+                            <div class="wireframe-form-group">
+                                <label for="prov-email">Correo Electrónico</label>
+                                <input type="email" id="prov-email" class="wireframe-input" placeholder="contacto@norma.com">
+                            </div>
+                        </div>
+
+                        <div class="wireframe-form-group">
+                            <label for="prov-address">Dirección Física</label>
+                            <textarea id="prov-address" class="wireframe-textarea" placeholder="Calle, Número, Colonia, Ciudad" rows="2"></textarea>
+                        </div>
+
+                        <div class="modal-footer-actions">
+                            <button type="button" class="wireframe-btn btn-outline" onclick="closeModal('modal-provider')">Cancelar</button>
+                            <button type="button" id="btn-save-provider" class="wireframe-btn btn-primary">Registrar Proveedor</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL 3: REGISTRO DE MOVIMIENTO DE STOCK (ENTRADA / AJUSTE) -->
+    <div id="modal-movement" class="wireframe-modal hidden">
+        <div class="modal-backdrop"></div>
+        <div class="modal-wrapper">
+            <div class="wireframe-box modal-content">
+                <div class="modal-header">
+                    <h3>Registrar Movimiento de Inventario</h3>
+                    <button class="modal-close-btn" onclick="closeModal('modal-movement')">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <form id="movement-form" onsubmit="event.preventDefault();">
+                        <div class="wireframe-form-group">
+                            <label for="mov-product-id">Seleccionar Producto *</label>
+                            <select id="mov-product-id" class="wireframe-select" required>
+                                <!-- Llenado dinámico en app.js -->
+                            </select>
+                        </div>
+
+                        <div class="form-row-2">
+                            <div class="wireframe-form-group">
+                                <label for="mov-type">Tipo de Movimiento *</label>
+                                <select id="mov-type" class="wireframe-select" required>
+                                    <option value="Entrada">Entrada (Abastecimiento)</option>
+                                    <option value="Ajuste">Ajuste (Corrección / Merma)</option>
+                                </select>
+                            </div>
+                            <div class="wireframe-form-group">
+                                <label for="mov-quantity">Cantidad *</label>
+                                <input type="number" id="mov-quantity" class="wireframe-input" min="1" placeholder="10" required>
+                            </div>
+                        </div>
+
+                        <div class="wireframe-form-group">
+                            <label for="mov-reason">Motivo o Referencia *</label>
+                            <input type="text" id="mov-reason" class="wireframe-input" placeholder="ej. Compra de resmas a Distribuidora del Centro" required>
+                        </div>
+
+                        <div class="modal-footer-actions">
+                            <button type="button" class="wireframe-btn btn-outline" onclick="closeModal('modal-movement')">Cancelar</button>
+                            <button type="button" id="btn-save-movement" class="wireframe-btn btn-primary">Registrar Movimiento</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL 4: PROCESAR PAGO (CHECKOUT FORM) -->
+    <div id="modal-checkout" class="wireframe-modal hidden">
+        <div class="modal-backdrop"></div>
+        <div class="modal-wrapper">
+            <div class="wireframe-box modal-content select-checkout-modal">
+                <div class="modal-header">
+                    <h3>Cobrar Venta - Detalle de Pago</h3>
+                    <button class="modal-close-btn" onclick="closeModal('modal-checkout')">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <div class="checkout-summary-box">
+                        <div class="summary-item">
+                            <span>Monto Total a Pagar:</span>
+                            <span id="checkout-total-lbl" class="summary-val">$0.00</span>
+                        </div>
+                    </div>
+
+                    <form id="checkout-form" onsubmit="event.preventDefault();">
+                        <div class="wireframe-form-group">
+                            <label for="chk-payment-type">Método de Pago</label>
+                            <select id="chk-payment-type" class="wireframe-select">
+                                <option value="Efectivo">Efectivo</option>
+                                <option value="Tarjeta">Tarjeta de Crédito / Débito</option>
+                                <option value="Transferencia">Transferencia Electrónica</option>
+                            </select>
+                        </div>
+
+                        <div id="cash-payment-fields">
+                            <div class="wireframe-form-group">
+                                <label for="chk-amount-paid">Efectivo Recibido ($) *</label>
+                                <input type="number" id="chk-amount-paid" class="wireframe-input focus-input" step="0.01" min="0" placeholder="0.00" required>
+                            </div>
+                            <div class="checkout-change-box">
+                                <span>Cambio a devolver:</span>
+                                <span id="checkout-change-lbl" class="change-val">$0.00</span>
+                            </div>
+                        </div>
+
+                        <div id="checkout-error-msg" class="error-text mb-2"></div>
+
+                        <div class="modal-footer-actions">
+                            <button type="button" class="wireframe-btn btn-outline" onclick="closeModal('modal-checkout')">Cancelar</button>
+                            <button type="button" id="btn-confirm-checkout" class="wireframe-btn btn-primary">✓ Confirmar Venta e Imprimir Ticket</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- ==================== BANDEJA COLABORATIVA (Comentarios del Equipo) ==================== -->
+    <div id="collaboration-tray" class="collab-tray collapsed">
+        <button id="btn-collab-toggle" class="collab-toggle-btn">
+            <span class="collab-badge">3</span>
+            <span class="toggle-icon">💬</span>
+            <span class="toggle-text">Comentarios del Equipo</span>
+        </button>
+        <div class="collab-content">
+            <div class="collab-header">
+                <h3>💬 Discusión de Diseño UI/UX</h3>
+                <p>Comentarios colaborativos del equipo del proyecto.</p>
+            </div>
+            
+            <div class="collab-comments-list" id="collab-comments-container">
+                <!-- Comentarios preestablecidos del equipo para simular la actividad grupal -->
+                <div class="comment-item">
+                    <div class="comment-header">
+                        <span class="comment-author author-wendy">Wendy Rivera</span>
+                        <span class="comment-time">Ayer, 18:40</span>
+                    </div>
+                    <p class="comment-text">Diseñé el formulario de cobro (Checkout) para que pida el efectivo recibido y calcule el cambio de inmediato. Eso le ayuda mucho al cajero para evitar errores en caja.</p>
+                </div>
+                
+                <div class="comment-item">
+                    <div class="comment-header">
+                        <span class="comment-author author-enoc">Enoc H.</span>
+                        <span class="comment-time">Ayer, 20:15</span>
+                    </div>
+                    <p class="comment-text">¡Excelente Wendy! Por mi parte, agregué el gráfico lineal en el Dashboard para ver la tendencia de ventas semanales. Como es baja fidelidad, lo representé con líneas grises muy limpias y etiquetas claras.</p>
+                </div>
+
+                <div class="comment-item">
+                    <div class="comment-header">
+                        <span class="comment-author author-guillermina">Guillermina S.</span>
+                        <span class="comment-time">Hoy, 08:12</span>
+                    </div>
+                    <p class="comment-text">Me parece muy bien. En el catálogo de productos (Inventario) agregué badges en gris oscuro para el stock bajo y stock disponible. Así resalta jerárquicamente qué hay que reabastecer sin usar colores complejos de diseño final.</p>
+                </div>
+            </div>
+
+            <!-- Formulario de nuevo comentario para que el usuario o docente agregue opiniones en vivo -->
+            <div class="collab-new-comment-form">
+                <div class="form-row-2 mb-2">
+                    <select id="collab-user-select" class="wireframe-select select-sm">
+                        <option value="Wendy">Como Wendy</option>
+                        <option value="Enoc">Como Enoc</option>
+                        <option value="Guillermina">Como Guillermina</option>
+                        <option value="Docente">Como Profesor/a (Revisor/a)</option>
+                    </select>
+                </div>
+                <textarea id="collab-comment-input" class="wireframe-textarea select-sm" placeholder="Escribe un comentario..." rows="2"></textarea>
+                <button id="btn-add-comment" class="wireframe-btn btn-primary btn-sm mt-1 btn-full-width">Agregar Comentario</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Script de lógica dinámica -->
+    <script src="app.js"></script>
+</body>
+</html>

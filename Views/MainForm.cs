@@ -17,6 +17,7 @@ namespace STOCKPAP.Views
         private Label lblUser;
         private Label lblDate;
         private Button btnToggle;
+        private Button btnLogout;
 
         public MainForm(Usuario user)
         {
@@ -131,6 +132,26 @@ namespace STOCKPAP.Views
             sidebarPanel.Controls.Add(lblUser);
             sidebarPanel.Controls.Add(lblDate);
             
+            btnLogout = new Button
+            {
+                Text = "Cerrar Sesion",
+                Font = new Font("Segoe UI", 10, FontStyle.Bold),
+                FlatStyle = FlatStyle.Flat,
+                Size = new Size(210, 35),
+                Location = new Point(20, this.Height - 50),
+                BackColor = Color.FromArgb(220, 50, 50),
+                ForeColor = Color.White,
+                Cursor = Cursors.Hand
+            };
+            btnLogout.FlatAppearance.BorderSize = 0;
+            btnLogout.Click += (s, e) => {
+                if (MessageBox.Show("¿Seguro que deseas cerrar sesión?", "Cerrar Sesión", MessageBoxButtons.YesNo, MessageBoxIcon.Question) == DialogResult.Yes)
+                {
+                    Application.Restart();
+                }
+            };
+            sidebarPanel.Controls.Add(btnLogout);
+            
             // Set initial active state
             MenuClick("Ventas", (Button)sidebarPanel.Controls["btnVentas"]);
         }
@@ -144,6 +165,7 @@ namespace STOCKPAP.Views
             lblSubLogo.Visible = isSidebarExpanded;
             lblUser.Visible = isSidebarExpanded;
             lblDate.Visible = isSidebarExpanded;
+            btnLogout.Visible = isSidebarExpanded;
 
             foreach (Control c in sidebarPanel.Controls)
             {

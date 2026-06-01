@@ -37,7 +37,7 @@ namespace STOCKPAP.Views
 
         private void InitializeComponent()
         {
-            BackColor = Color.FromArgb(245, 247, 250);
+            this.BackColor = Color.FromArgb(245, 247, 250);
             Padding = new Padding(30);
 
             Label lblTitle = new Label
@@ -64,7 +64,7 @@ namespace STOCKPAP.Views
             {
                 Size = new Size(790, 90),
                 Location = new Point(250, 25),
-                Anchor = AnchorStyles.Top | AnchorStyles.Right,
+                Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right,
                 FlowDirection = FlowDirection.LeftToRight,
                 WrapContents = true
             };
@@ -75,21 +75,17 @@ namespace STOCKPAP.Views
             btnNuevoMovimiento.Click += BtnNuevoMovimiento_Click;
             accionesPanel.Controls.Add(btnNuevoMovimiento);
 
-            RoundedButton btnInventarioCsv = CrearBoton("Inventario CSV", Color.FromArgb(34, 197, 94));
-            btnInventarioCsv.Click += (s, e) => ExportarInventarioCsv();
-            accionesPanel.Controls.Add(btnInventarioCsv);
+            RoundedButton btnInventarioPdf = CrearBoton("Inventario PDF", Color.FromArgb(100, 116, 139));
+            btnInventarioPdf.Click += (s, e) => ExportarInventarioPdf();
+            accionesPanel.Controls.Add(btnInventarioPdf);
 
-            RoundedButton btnInventarioTxt = CrearBoton("Inventario TXT", Color.FromArgb(100, 116, 139));
-            btnInventarioTxt.Click += (s, e) => ExportarInventarioTxt();
-            accionesPanel.Controls.Add(btnInventarioTxt);
+            RoundedButton btnMovimientosPdf = CrearBoton("Movimientos PDF", Color.FromArgb(124, 58, 237));
+            btnMovimientosPdf.Click += (s, e) => ExportarMovimientosPdf();
+            accionesPanel.Controls.Add(btnMovimientosPdf);
 
-            RoundedButton btnMovimientosCsv = CrearBoton("Movimientos CSV", Color.FromArgb(14, 165, 233));
-            btnMovimientosCsv.Click += (s, e) => ExportarMovimientosCsv();
-            accionesPanel.Controls.Add(btnMovimientosCsv);
-
-            RoundedButton btnMovimientosTxt = CrearBoton("Movimientos TXT", Color.FromArgb(124, 58, 237));
-            btnMovimientosTxt.Click += (s, e) => ExportarMovimientosTxt();
-            accionesPanel.Controls.Add(btnMovimientosTxt);
+            RoundedButton btnTicketGlobal = CrearBoton("Ticket Global PDF", Color.FromArgb(234, 88, 12));
+            btnTicketGlobal.Click += (s, e) => ExportarTicketGlobalPdf();
+            accionesPanel.Controls.Add(btnTicketGlobal);
 
             lblTotalProd = CrearTarjetaStat("Total Productos", "...", "productos", Color.FromArgb(30, 96, 255), 30, 110);
             lblTotalUnidades = CrearTarjetaStat("Unidades Totales", "...", "en inventario", Color.FromArgb(22, 163, 74), 225, 110);
@@ -251,46 +247,22 @@ namespace STOCKPAP.Views
 
         private void ExportarInventarioCsv()
         {
-            GuardarArchivo("Inventario_STOCKPAP", "Archivo CSV|*.csv", ".csv", CrearInventarioCsv());
+            Exportar.GuardarArchivo("Inventario_STOCKPAP", "Archivo CSV|*.csv", ".csv", CrearInventarioCsv());
         }
 
-        private void ExportarInventarioTxt()
+        private void ExportarInventarioPdf()
         {
-            GuardarArchivo("Inventario_STOCKPAP", "Archivo de texto|*.txt", ".txt", CrearInventarioTxt());
+            Exportar.GuardarArchivoPdf("Inventario_STOCKPAP", CrearInventarioTxt());
         }
 
-        private void ExportarMovimientosCsv()
+        private void ExportarMovimientosPdf()
         {
-            GuardarArchivo("Movimientos_STOCKPAP", "Archivo CSV|*.csv", ".csv", CrearMovimientosCsv());
+            Exportar.GuardarArchivoPdf("Movimientos_STOCKPAP", CrearMovimientosTxt());
         }
 
-        private void ExportarMovimientosTxt()
+        private void ExportarTicketGlobalPdf()
         {
-            GuardarArchivo("Movimientos_STOCKPAP", "Archivo de texto|*.txt", ".txt", CrearMovimientosTxt());
-        }
-
-        private void GuardarArchivo(string nombre, string filtro, string extension, string contenido)
-        {
-            using (SaveFileDialog sfd = new SaveFileDialog())
-            {
-                sfd.Title = "Guardar reporte";
-                sfd.Filter = filtro;
-                sfd.FileName = $"{nombre}_{DateTime.Now:yyyyMMdd_HHmm}{extension}";
-
-                if (sfd.ShowDialog() != DialogResult.OK) return;
-
-                try
-                {
-                    File.WriteAllText(sfd.FileName, contenido, Encoding.UTF8);
-                    var res = MessageBox.Show($"Archivo generado correctamente.\n\n{sfd.FileName}\n\nDeseas abrirlo?", "Descarga lista", MessageBoxButtons.YesNo, MessageBoxIcon.Information);
-                    if (res == DialogResult.Yes)
-                        System.Diagnostics.Process.Start(sfd.FileName);
-                }
-                catch (Exception ex)
-                {
-                    MessageBox.Show("Error al exportar: " + ex.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                }
-            }
+            Exportar.GuardarArchivoPdf("Ticket_Global_STOCKPAP", CrearTicketGlobalTxt());
         }
 
         private string CrearInventarioCsv()
@@ -347,6 +319,23 @@ namespace STOCKPAP.Views
             sb.AppendLine(new string('=', 60));
             foreach (var m in movimientos)
                 sb.AppendLine($"{m.Fecha:dd/MM/yyyy HH:mm} | {m.Tipo} | {m.ProductoNombre} | Cantidad {m.Cantidad} | Stock {m.StockAnterior}->{m.StockNuevo} | {CrearDetalleMovimiento(m)}");
+            return sb.ToString();
+        }
+
+        private string CrearTicketGlobalTxt()
+        {
+            var sb = new StringBuilder();
+            sb.AppendLine("============================================================");
+            sb.AppendLine("                TICKET GLOBAL - STOCKPAP");
+            sb.AppendLine("============================================================");
+            sb.AppendLine($"Generado: {DateTime.Now:dd/MM/yyyy HH:mm:ss}");
+            sb.AppendLine();
+            sb.AppendLine("--- RESUMEN DE INVENTARIO ---");
+            sb.Append(CrearInventarioTxt().Replace("REPORTE DE INVENTARIO - STOCKPAP\r\n", "").Replace($"Generado: {DateTime.Now:dd/MM/yyyy HH:mm:ss}\r\n", "").Replace(new string('=', 60) + "\r\n", ""));
+            sb.AppendLine();
+            sb.AppendLine("--- HISTORIAL DE MOVIMIENTOS ---");
+            sb.Append(CrearMovimientosTxt().Replace("REPORTE DE MOVIMIENTOS - STOCKPAP\r\n", "").Replace($"Generado: {DateTime.Now:dd/MM/yyyy HH:mm:ss}\r\n", "").Replace(new string('=', 60) + "\r\n", ""));
+            sb.AppendLine("============================================================");
             return sb.ToString();
         }
 

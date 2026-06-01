@@ -28,11 +28,22 @@ namespace STOCKPAP.Views
             this.MaximizeBox = false;
             this.BackColor = Color.FromArgb(240, 244, 248);
 
+            try
+            {
+                string bgPath = System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Assets", "Images", "login_bg.png");
+                if (System.IO.File.Exists(bgPath))
+                {
+                    this.BackgroundImage = Image.FromFile(bgPath);
+                    this.BackgroundImageLayout = ImageLayout.Stretch;
+                }
+            }
+            catch { }
+
             panelLogin = new RoundedPanel
             {
                 Size = new Size(320, 380),
                 Location = new Point(32, 40),
-                BackColor = Color.White,
+                BackColor = Color.FromArgb(245, 255, 255, 255),
                 BorderRadius = 20
             };
             this.Controls.Add(panelLogin);

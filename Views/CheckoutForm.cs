@@ -26,7 +26,7 @@ namespace STOCKPAP.Views
         private void InitializeComponent()
         {
             Text = "Completar Venta";
-            Size = new Size(420, 560);
+            Size = new Size(420, 600);
             StartPosition = FormStartPosition.CenterParent;
             FormBorderStyle = FormBorderStyle.FixedDialog;
             MaximizeBox = false;
