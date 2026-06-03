@@ -1,5 +1,6 @@
 using System;
 using System.Drawing;
+using System.Drawing.Drawing2D;
 using System.IO;
 using System.Linq;
 using System.Windows.Forms;
@@ -16,13 +17,20 @@ namespace STOCKPAP.Views
         private ProductoRepository repoProd;
         private VentaRepository repoVenta;
         private TextBox txtBuscar;
+        private TextBox txtCodigoBarras;
         private Label lblSubtotal;
         private Label lblIva;
         private Label lblTotal;
         private Label lblItemsCount;
+        private Label lblScanStatus;
+        private Panel pnlScanIndicator;
         private Venta ventaActual;
         private Usuario currentUser;
         private bool puedeVender;
+
+        // Flash feedback timer for inline scan
+        private Timer timerScanFeedback;
+        private int scanFeedbackCount;
 
         public VentasView(Usuario user)
         {
@@ -44,14 +52,14 @@ namespace STOCKPAP.Views
             Panel panelIzquierdo = new Panel { Dock = DockStyle.Fill, Padding = new Padding(0, 0, 20, 0) };
             this.Controls.Add(panelIzquierdo);
 
-            Panel pnlTopIzq = new Panel { Dock = DockStyle.Top, Height = 150 };
+            Panel pnlTopIzq = new Panel { Dock = DockStyle.Top, Height = 220 };
             panelIzquierdo.Controls.Add(pnlTopIzq);
 
             Label lblTitle = new Label
             {
                 Text = puedeVender ? "Nueva Venta" : "Consulta de Productos",
                 Font = new Font("Segoe UI", 24, FontStyle.Bold),
-                Location = new Point(0, 20),
+                Location = new Point(0, 10),
                 AutoSize = true
             };
             pnlTopIzq.Controls.Add(lblTitle);
@@ -74,12 +82,14 @@ namespace STOCKPAP.Views
                 if (MessageBox.Show("¿Seguro que deseas cerrar sesión?", "Cerrar Sesión", MessageBoxButtons.YesNo, MessageBoxIcon.Question) == DialogResult.Yes)
                     System.Windows.Forms.Application.Restart();
             };
+            btnLogoutVentas.Visible = false;
             pnlTopIzq.Controls.Add(btnLogoutVentas);
 
+            // ── Search bar ──────────────────────────────────────────
             RoundedPanel searchPanel = new RoundedPanel
             {
-                Height = 45,
-                Location = new Point(0, 80),
+                Height = 42,
+                Location = new Point(0, 55),
                 BackColor = Color.White,
                 BorderRadius = 15,
                 Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right,
@@ -90,7 +100,7 @@ namespace STOCKPAP.Views
                 Text = "Buscar producto por nombre...",
                 Font = new Font("Segoe UI", 11),
                 ForeColor = Color.Gray,
-                Location = new Point(15, 12),
+                Location = new Point(15, 10),
                 Width = 470,
                 BorderStyle = BorderStyle.None
             };
@@ -100,6 +110,109 @@ namespace STOCKPAP.Views
             searchPanel.Controls.Add(txtBuscar);
             pnlTopIzq.Controls.Add(searchPanel);
 
+            // ── Barcode Scanner Section (POS-style) ─────────────────
+            RoundedPanel barcodePanel = new RoundedPanel
+            {
+                Height = 95,
+                Location = new Point(0, 108),
+                BackColor = Color.FromArgb(20, 25, 35),
+                BorderRadius = 12,
+                Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right,
+                Width = panelIzquierdo.Width - 40
+            };
+
+            // Scan status indicator dot
+            pnlScanIndicator = new Panel
+            {
+                Size = new Size(10, 10),
+                Location = new Point(15, 12),
+                BackColor = Color.Transparent
+            };
+            pnlScanIndicator.Paint += (s, ev) =>
+            {
+                ev.Graphics.SmoothingMode = SmoothingMode.AntiAlias;
+                ev.Graphics.Clear(barcodePanel.BackColor);
+                using (SolidBrush br = new SolidBrush(Color.FromArgb(0, 150, 255)))
+                    ev.Graphics.FillEllipse(br, 0, 0, 9, 9);
+            };
+            barcodePanel.Controls.Add(pnlScanIndicator);
+
+            Label lblBarcodeTitle = new Label
+            {
+                Text = "ESCÁNER DE CÓDIGO DE BARRAS",
+                Font = new Font("Segoe UI", 8, FontStyle.Bold),
+                ForeColor = Color.FromArgb(0, 170, 255),
+                Location = new Point(30, 9),
+                AutoSize = true
+            };
+            barcodePanel.Controls.Add(lblBarcodeTitle);
+
+            txtCodigoBarras = new TextBox
+            {
+                Text = "Escribe o escanea el código...",
+                Font = new Font("Consolas", 12),
+                ForeColor = Color.Gray,
+                BackColor = Color.FromArgb(35, 40, 55),
+                Location = new Point(15, 32),
+                Width = 240,
+                Height = 32,
+                BorderStyle = BorderStyle.FixedSingle
+            };
+            txtCodigoBarras.Enter += (s, e) => { if (txtCodigoBarras.Text == "Escribe o escanea el código...") { txtCodigoBarras.Text = ""; txtCodigoBarras.ForeColor = Color.FromArgb(0, 220, 120); } };
+            txtCodigoBarras.Leave += (s, e) => { if (string.IsNullOrWhiteSpace(txtCodigoBarras.Text)) { txtCodigoBarras.Text = "Escribe o escanea el código..."; txtCodigoBarras.ForeColor = Color.Gray; } };
+            txtCodigoBarras.KeyDown += (s, e) =>
+            {
+                if (e.KeyCode == Keys.Enter)
+                {
+                    AgregarProductoPorCodigo(txtCodigoBarras.Text);
+                    e.SuppressKeyPress = true;
+                }
+            };
+            barcodePanel.Controls.Add(txtCodigoBarras);
+
+            Button btnAgregarCodigo = new Button
+            {
+                Text = "✚ Agregar",
+                Font = new Font("Segoe UI", 9, FontStyle.Bold),
+                FlatStyle = FlatStyle.Flat,
+                Size = new Size(95, 32),
+                Location = new Point(265, 32),
+                BackColor = Color.FromArgb(0, 180, 100),
+                ForeColor = Color.White,
+                Cursor = Cursors.Hand
+            };
+            btnAgregarCodigo.FlatAppearance.BorderSize = 0;
+            btnAgregarCodigo.Click += (s, e) => AgregarProductoPorCodigo(txtCodigoBarras.Text);
+            barcodePanel.Controls.Add(btnAgregarCodigo);
+
+            Button btnEscanear = new Button
+            {
+                Text = "📷 ESCANEAR",
+                Font = new Font("Segoe UI", 10, FontStyle.Bold),
+                FlatStyle = FlatStyle.Flat,
+                Size = new Size(140, 32),
+                Location = new Point(370, 32),
+                BackColor = Color.FromArgb(30, 96, 255),
+                ForeColor = Color.White,
+                Cursor = Cursors.Hand
+            };
+            btnEscanear.FlatAppearance.BorderSize = 0;
+            btnEscanear.Click += BtnEscanear_Click;
+            barcodePanel.Controls.Add(btnEscanear);
+
+            lblScanStatus = new Label
+            {
+                Text = "Listo para escanear",
+                Font = new Font("Segoe UI", 8),
+                ForeColor = Color.FromArgb(120, 130, 150),
+                Location = new Point(15, 72),
+                AutoSize = true
+            };
+            barcodePanel.Controls.Add(lblScanStatus);
+
+            pnlTopIzq.Controls.Add(barcodePanel);
+
+            // ── Products Grid ───────────────────────────────────────
             Panel pnlFillIzq = new Panel { Dock = DockStyle.Fill, Padding = new Padding(0, 10, 0, 10) };
             panelIzquierdo.Controls.Add(pnlFillIzq);
             pnlFillIzq.BringToFront();
@@ -111,6 +224,7 @@ namespace STOCKPAP.Views
             };
             pnlFillIzq.Controls.Add(gridProductos);
 
+            // ── Right Panel (Cart) ──────────────────────────────────
             Panel panelDerecho = new Panel { Dock = DockStyle.Right, Width = 350, BackColor = Color.White };
             this.Controls.Add(panelDerecho);
 
@@ -157,6 +271,22 @@ namespace STOCKPAP.Views
             cartFooter.Controls.Add(btnProcesar);
             panelDerecho.Controls.Add(cartFooter);
             gridCarrito.BringToFront();
+
+            // ── Scan feedback timer ─────────────────────────────────
+            timerScanFeedback = new Timer { Interval = 150 };
+            timerScanFeedback.Tick += (s, e) =>
+            {
+                scanFeedbackCount++;
+                if (scanFeedbackCount > 6)
+                {
+                    timerScanFeedback.Stop();
+                    lblScanStatus.ForeColor = Color.FromArgb(120, 130, 150);
+                    lblScanStatus.Text = "Listo para escanear";
+                    pnlScanIndicator.Invalidate();
+                }
+            };
+
+            this.Load += (s, e) => txtCodigoBarras.Focus();
         }
 
         private void LoadProductos(string filtro = "")
@@ -239,7 +369,70 @@ namespace STOCKPAP.Views
                     Subtotal = p.PrecioVenta
                 });
             }
+
+            // Show green feedback
+            ShowScanSuccess(p.Nombre);
             UpdateCartUI();
+        }
+
+        private void ShowScanSuccess(string productoNombre)
+        {
+            lblScanStatus.Text = $"✅ {productoNombre} agregado al carrito";
+            lblScanStatus.ForeColor = Color.FromArgb(0, 220, 80);
+            scanFeedbackCount = 0;
+            timerScanFeedback.Start();
+        }
+
+        private void BtnEscanear_Click(object sender, EventArgs e)
+        {
+            if (!puedeVender)
+            {
+                MessageBox.Show("Tu rol es de consulta. No puedes agregar productos al carrito.", "Acceso restringido", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
+            using (var scanner = new BarcodeScannerForm())
+            {
+                if (scanner.ShowDialog(this) != DialogResult.OK)
+                    return;
+
+                txtCodigoBarras.Text = scanner.CodigoDetectado;
+                txtCodigoBarras.ForeColor = Color.FromArgb(0, 220, 120);
+                AgregarProductoPorCodigo(scanner.CodigoDetectado);
+            }
+        }
+
+        private void AgregarProductoPorCodigo(string codigo)
+        {
+            if (!puedeVender)
+            {
+                MessageBox.Show("Tu rol es de consulta. No puedes agregar productos al carrito.", "Acceso restringido", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
+            if (string.IsNullOrWhiteSpace(codigo) || codigo == "Escribe o escanea el código...")
+            {
+                MessageBox.Show("Escribe o escanea un codigo de barras.", "Codigo requerido", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                txtCodigoBarras.Focus();
+                return;
+            }
+
+            var producto = repoProd.BuscarPorCodigoBarras(codigo.Trim());
+            if (producto == null)
+            {
+                lblScanStatus.Text = $"❌ No se encontró producto con código: {codigo.Trim()}";
+                lblScanStatus.ForeColor = Color.FromArgb(255, 80, 80);
+                MessageBox.Show("No hay un producto registrado con el codigo: " + codigo.Trim(), "Producto no encontrado", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                txtCodigoBarras.SelectAll();
+                txtCodigoBarras.Focus();
+                return;
+            }
+
+            AddToCart(producto);
+            txtBuscar.Text = producto.Nombre;
+            txtBuscar.ForeColor = Color.Black;
+            txtCodigoBarras.Clear();
+            txtCodigoBarras.Focus();
         }
 
         private void UpdateCartUI()

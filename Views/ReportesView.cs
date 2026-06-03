@@ -38,7 +38,8 @@ namespace STOCKPAP.Views
         private void InitializeComponent()
         {
             this.BackColor = Color.FromArgb(245, 247, 250);
-            Padding = new Padding(30);
+            this.Padding = new Padding(30);
+            this.AutoScroll = true;
 
             Label lblTitle = new Label
             {
@@ -92,7 +93,7 @@ namespace STOCKPAP.Views
             lblValorInv = CrearTarjetaStat("Valor Inventario", "...", "valor estimado", Color.FromArgb(234, 88, 12), 420, 110);
             lblStockBajo = CrearTarjetaStat("Stock Bajo", "...", "necesitan atencion", Color.FromArgb(190, 18, 60), 615, 110);
 
-            RoundedPanel panelInventario = CrearPanelTabla("Detalle del Inventario", 30, 270, 500, 430);
+            RoundedPanel panelInventario = CrearPanelTabla("Detalle del Inventario", 30, 270, 960, 320);
             dgvProductos = CrearGrid();
             dgvProductos.Columns.Add(new DataGridViewTextBoxColumn { Name = "colNombre", HeaderText = "Producto", FillWeight = 28 });
             dgvProductos.Columns.Add(new DataGridViewTextBoxColumn { Name = "colCategoria", HeaderText = "Categoria", FillWeight = 16 });
@@ -105,7 +106,7 @@ namespace STOCKPAP.Views
             panelInventario.Controls.Add(dgvProductos);
             Controls.Add(panelInventario);
 
-            RoundedPanel panelMovimientos = CrearPanelTabla("Historial de Movimientos", 550, 270, 500, 430);
+            RoundedPanel panelMovimientos = CrearPanelTabla("Historial de Movimientos", 30, 620, 960, 320);
             dgvMovimientos = CrearGrid();
             dgvMovimientos.Columns.Add(new DataGridViewTextBoxColumn { Name = "colFecha", HeaderText = "Fecha", FillWeight = 18 });
             dgvMovimientos.Columns.Add(new DataGridViewTextBoxColumn { Name = "colTipo", HeaderText = "Tipo", FillWeight = 12 });
@@ -153,7 +154,7 @@ namespace STOCKPAP.Views
                 BackColor = Color.White,
                 BorderRadius = 14,
                 Padding = new Padding(10, 50, 10, 10),
-                Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left
+                Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right
             };
             panel.Controls.Add(new Label { Text = titulo, Font = new Font("Segoe UI", 12, FontStyle.Bold), AutoSize = true, Location = new Point(15, 15), ForeColor = Color.FromArgb(20, 20, 40) });
             return panel;

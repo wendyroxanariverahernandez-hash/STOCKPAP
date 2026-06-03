@@ -15,6 +15,8 @@ namespace STOCKPAP.Views
         private TextBox txtBuscar;
         private Label lblSubtitle;
         private string _categoriaActiva = "Todas";
+        private string _clasificacionActiva = "Todas";
+        private string _detalleActivo = "Todos";
         private bool puedeEditar;
 
         public InventarioView(bool puedeEditar = true)
@@ -126,8 +128,119 @@ namespace STOCKPAP.Views
             panelFiltros.Controls.Add(txtBuscar);
             panelFiltros.Controls.Add(lineSearch);
 
+            FlowLayoutPanel categoryStrip = new FlowLayoutPanel
+            {
+                Location = new Point(15, 58),
+                Size = new Size(panelFiltros.Width - 30, 42),
+                Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right,
+                AutoScroll = true,
+                WrapContents = false,
+                BackColor = Color.Transparent,
+                Visible = false
+            };
+            panelFiltros.Controls.Add(categoryStrip);
+
+            Label lblCategoria = new Label
+            {
+                Text = "Categoria:",
+                Font = new Font("Segoe UI", 9, FontStyle.Bold),
+                ForeColor = Color.FromArgb(60, 60, 60),
+                AutoSize = true,
+                Location = new Point(15, 66)
+            };
+            panelFiltros.Controls.Add(lblCategoria);
+
+            ComboBox cmbCategorias = new ComboBox
+            {
+                Location = new Point(95, 62),
+                Size = new Size(220, 30),
+                Font = new Font("Segoe UI", 10),
+                DropDownStyle = ComboBoxStyle.DropDownList
+            };
+            cmbCategorias.Items.AddRange(ProductCategories.Merge(repo.ObtenerCategorias(), includeAll: true));
+            cmbCategorias.SelectedItem = "Todas";
+            panelFiltros.Controls.Add(cmbCategorias);
+
+            Label lblClasificacion = new Label
+            {
+                Text = "Clasificacion:",
+                Font = new Font("Segoe UI", 9, FontStyle.Bold),
+                ForeColor = Color.FromArgb(60, 60, 60),
+                AutoSize = true,
+                Location = new Point(335, 66)
+            };
+            panelFiltros.Controls.Add(lblClasificacion);
+
+            ComboBox cmbClasificaciones = new ComboBox
+            {
+                Location = new Point(435, 62),
+                Size = new Size(190, 30),
+                Font = new Font("Segoe UI", 10),
+                DropDownStyle = ComboBoxStyle.DropDownList
+            };
+            panelFiltros.Controls.Add(cmbClasificaciones);
+
+            Label lblDetalle = new Label
+            {
+                Text = "Tipo:",
+                Font = new Font("Segoe UI", 9, FontStyle.Bold),
+                ForeColor = Color.FromArgb(60, 60, 60),
+                AutoSize = true,
+                Location = new Point(645, 66)
+            };
+            panelFiltros.Controls.Add(lblDetalle);
+
+            ComboBox cmbDetalles = new ComboBox
+            {
+                Location = new Point(690, 62),
+                Size = new Size(180, 30),
+                Font = new Font("Segoe UI", 10),
+                DropDownStyle = ComboBoxStyle.DropDownList
+            };
+            panelFiltros.Controls.Add(cmbDetalles);
+
+            Action cargarDetalles = () =>
+            {
+                cmbDetalles.Items.Clear();
+                cmbDetalles.Items.AddRange(ProductCategories.MergeDetails(_categoriaActiva, _clasificacionActiva, repo.ObtenerDetalles(_categoriaActiva, _clasificacionActiva), includeAll: true));
+                cmbDetalles.SelectedItem = "Todos";
+            };
+
+            Action cargarClasificaciones = () =>
+            {
+                cmbClasificaciones.Items.Clear();
+                cmbClasificaciones.Items.AddRange(ProductCategories.MergeClassifications(_categoriaActiva, repo.ObtenerClasificaciones(_categoriaActiva), includeAll: true));
+                cmbClasificaciones.SelectedItem = "Todas";
+                _clasificacionActiva = "Todas";
+                _detalleActivo = "Todos";
+                cargarDetalles();
+            };
+
+            cmbCategorias.SelectedIndexChanged += (s, e) =>
+            {
+                _categoriaActiva = cmbCategorias.SelectedItem?.ToString() ?? "Todas";
+                cargarClasificaciones();
+                LoadProductos(busqueda: txtBuscar.Text == "Buscar productos..." ? "" : txtBuscar.Text);
+            };
+
+            cmbClasificaciones.SelectedIndexChanged += (s, e) =>
+            {
+                _clasificacionActiva = cmbClasificaciones.SelectedItem?.ToString() ?? "Todas";
+                _detalleActivo = "Todos";
+                cargarDetalles();
+                LoadProductos(busqueda: txtBuscar.Text == "Buscar productos..." ? "" : txtBuscar.Text);
+            };
+
+            cmbDetalles.SelectedIndexChanged += (s, e) =>
+            {
+                _detalleActivo = cmbDetalles.SelectedItem?.ToString() ?? "Todos";
+                LoadProductos(busqueda: txtBuscar.Text == "Buscar productos..." ? "" : txtBuscar.Text);
+            };
+
+            cargarClasificaciones();
+
             // Botones de categoría
-            string[] cats = { "Todas", "Cuadernos", "Escritura", "Papel", "Marcadores", "Organización", "Adhesivos", "Corte" };
+            string[] cats = ProductCategories.Merge(repo.ObtenerCategorias(), includeAll: true);
             int fx = 15;
             foreach (var cat in cats)
             {
@@ -138,7 +251,7 @@ namespace STOCKPAP.Views
                     Text = cat,
                     Font = new Font("Segoe UI", 9),
                     Size = new Size(btnW, 32),
-                    Location = new Point(fx, 62),
+                    Location = new Point(fx, 3),
                     BackColor = cat == "Todas" ? Color.FromArgb(30, 96, 255) : Color.FromArgb(245, 247, 250),
                     ForeColor = cat == "Todas" ? Color.White : Color.FromArgb(60, 60, 60),
                     BorderColor = cat == "Todas" ? Color.Transparent : Color.FromArgb(210, 215, 225),
@@ -151,7 +264,7 @@ namespace STOCKPAP.Views
                 {
                     _categoriaActiva = catLocal;
                     // Refrescar estilos de todos los botones de cat
-                    foreach (Control ctrl in panelFiltros.Controls)
+                    foreach (Control ctrl in categoryStrip.Controls)
                     {
                         if (ctrl is RoundedButton rb && rb.Tag is string tag &&
                             cats != null && System.Array.IndexOf(cats, tag) >= 0)
@@ -164,7 +277,7 @@ namespace STOCKPAP.Views
                     }
                     LoadProductos(busqueda: txtBuscar.Text == "Buscar productos..." ? "" : txtBuscar.Text);
                 };
-                panelFiltros.Controls.Add(btnCat);
+                categoryStrip.Controls.Add(btnCat);
                 fx += btnW + 8;
             }
 
@@ -186,13 +299,15 @@ namespace STOCKPAP.Views
         // ── Carga de datos ───────────────────────────────────────────────────
         private void LoadProductos(string busqueda = "")
         {
+            if (gridProductos == null) return;
+            
             gridProductos.Controls.Clear();
 
             System.Collections.Generic.List<Producto> lista;
             if (!string.IsNullOrEmpty(busqueda))
                 lista = repo.BuscarPorNombre(busqueda);
             else
-                lista = repo.BuscarPorCategoria(_categoriaActiva);
+                lista = repo.BuscarPorFiltros(_categoriaActiva, _clasificacionActiva, _detalleActivo);
 
             int stockBajo = 0;
             foreach (var p in lista)

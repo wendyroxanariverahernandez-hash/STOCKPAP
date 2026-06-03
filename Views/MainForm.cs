@@ -31,6 +31,7 @@ namespace STOCKPAP.Views
             this.Text = "StockPap";
             this.Size = new Size(1200, 800);
             this.StartPosition = FormStartPosition.CenterScreen;
+            this.WindowState = FormWindowState.Maximized;
             this.BackColor = Color.FromArgb(245, 247, 250);
 
             // Sidebar
@@ -119,7 +120,8 @@ namespace STOCKPAP.Views
                 Font = new Font("Segoe UI", 9),
                 ForeColor = Color.Gray,
                 AutoSize = true,
-                Location = new Point(20, this.Height - 100)
+                Location = new Point(20, sidebarPanel.Height - 115),
+                Anchor = AnchorStyles.Left | AnchorStyles.Bottom
             };
             lblDate = new Label
             {
@@ -127,7 +129,8 @@ namespace STOCKPAP.Views
                 Font = new Font("Segoe UI", 9),
                 ForeColor = Color.Gray,
                 AutoSize = true,
-                Location = new Point(20, this.Height - 80)
+                Location = new Point(20, sidebarPanel.Height - 92),
+                Anchor = AnchorStyles.Left | AnchorStyles.Bottom
             };
             sidebarPanel.Controls.Add(lblUser);
             sidebarPanel.Controls.Add(lblDate);
@@ -138,7 +141,8 @@ namespace STOCKPAP.Views
                 Font = new Font("Segoe UI", 10, FontStyle.Bold),
                 FlatStyle = FlatStyle.Flat,
                 Size = new Size(210, 35),
-                Location = new Point(20, this.Height - 50),
+                Location = new Point(20, sidebarPanel.Height - 58),
+                Anchor = AnchorStyles.Left | AnchorStyles.Right | AnchorStyles.Bottom,
                 BackColor = Color.FromArgb(220, 50, 50),
                 ForeColor = Color.White,
                 Cursor = Cursors.Hand
@@ -166,6 +170,7 @@ namespace STOCKPAP.Views
             lblUser.Visible = isSidebarExpanded;
             lblDate.Visible = isSidebarExpanded;
             btnLogout.Visible = isSidebarExpanded;
+            btnLogout.Width = isSidebarExpanded ? 210 : 40;
 
             foreach (Control c in sidebarPanel.Controls)
             {

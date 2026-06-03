@@ -19,12 +19,17 @@ CREATE TABLE Productos (
     Id SERIAL PRIMARY KEY,
     Nombre VARCHAR(150) NOT NULL,
     Categoria VARCHAR(100),
+    CodigoBarras VARCHAR(80),
     PrecioCompra NUMERIC(10,2) NOT NULL DEFAULT 0.00,
     PrecioVenta NUMERIC(10,2) NOT NULL DEFAULT 0.00,
     Stock INTEGER NOT NULL DEFAULT 0,
     StockMinimo INTEGER NOT NULL DEFAULT 10,
     ImagePath VARCHAR(500)
 );
+
+CREATE UNIQUE INDEX ux_productos_codigobarras
+ON Productos (CodigoBarras)
+WHERE CodigoBarras IS NOT NULL AND CodigoBarras <> '';
 
 CREATE TABLE Proveedores (
     Id SERIAL PRIMARY KEY,
