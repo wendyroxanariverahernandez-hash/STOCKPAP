@@ -16,6 +16,9 @@ namespace STOCKPAP.Utilities
                 sfd.Title = "Guardar archivo";
                 sfd.Filter = filtro;
                 sfd.FileName = $"{nombre}_{DateTime.Now:yyyyMMdd_HHmm}{extension}";
+                
+                string ruta = ConfigHelper.Obtener("RutaDescargas", Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments));
+                if (Directory.Exists(ruta)) sfd.InitialDirectory = ruta;
 
                 if (sfd.ShowDialog() != DialogResult.OK) return;
 
@@ -38,6 +41,9 @@ namespace STOCKPAP.Utilities
                 sfd.Title = "Guardar reporte PDF";
                 sfd.Filter = "Archivo PDF|*.pdf";
                 sfd.FileName = $"{nombre}_{DateTime.Now:yyyyMMdd_HHmm}.pdf";
+                
+                string ruta = ConfigHelper.Obtener("RutaDescargas", Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments));
+                if (Directory.Exists(ruta)) sfd.InitialDirectory = ruta;
 
                 if (sfd.ShowDialog() != DialogResult.OK) return;
 

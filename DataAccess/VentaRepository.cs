@@ -89,12 +89,20 @@ namespace STOCKPAP.DataAccess
                                 cmd.ExecuteNonQuery();
                             }
 
-                            // Obtener stock actual
+                            // Obtener stock actual y minimo
                             int stockAnterior = 0;
-                            using (var cmdStock = new NpgsqlCommand("SELECT Stock FROM Productos WHERE Id = @p", conn, transaction))
+                            int stockMinimo = 10;
+                            using (var cmdStock = new NpgsqlCommand("SELECT Stock, StockMinimo FROM Productos WHERE Id = @p", conn, transaction))
                             {
                                 cmdStock.Parameters.AddWithValue("p", detalle.ProductoId);
-                                stockAnterior = Convert.ToInt32(cmdStock.ExecuteScalar());
+                                using (var reader = cmdStock.ExecuteReader())
+                                {
+                                    if (reader.Read())
+                                    {
+                                        stockAnterior = reader.GetInt32(0);
+                                        stockMinimo = reader.GetInt32(1);
+                                    }
+                                }
                             }
 
                             int stockNuevo = stockAnterior - detalle.Cantidad;
@@ -118,6 +126,28 @@ namespace STOCKPAP.DataAccess
                                 cmdMov.Parameters.AddWithValue("sn", stockNuevo);
                                 cmdMov.Parameters.AddWithValue("m", $"Venta #{ventaId}: {detalle.ProductoNombre} x{detalle.Cantidad}");
                                 cmdMov.ExecuteNonQuery();
+                            }
+
+                            // Registrar Alerta de Stock Bajo si es necesario
+                            if (stockNuevo <= stockMinimo)
+                            {
+                                bool alertaExiste = false;
+                                using (var cmdCheck = new NpgsqlCommand("SELECT COUNT(*) FROM AlertasStock WHERE ProductoId = @p AND Resuelta = FALSE", conn, transaction))
+                                {
+                                    cmdCheck.Parameters.AddWithValue("p", detalle.ProductoId);
+                                    alertaExiste = Convert.ToInt32(cmdCheck.ExecuteScalar()) > 0;
+                                }
+
+                                if (!alertaExiste)
+                                {
+                                    using (var cmdAlert = new NpgsqlCommand("INSERT INTO AlertasStock (ProductoId, StockActual, StockMinimo) VALUES (@p, @sa, @sm)", conn, transaction))
+                                    {
+                                        cmdAlert.Parameters.AddWithValue("p", detalle.ProductoId);
+                                        cmdAlert.Parameters.AddWithValue("sa", stockNuevo);
+                                        cmdAlert.Parameters.AddWithValue("sm", stockMinimo);
+                                        cmdAlert.ExecuteNonQuery();
+                                    }
+                                }
                             }
                         }
 

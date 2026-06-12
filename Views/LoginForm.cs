@@ -12,7 +12,6 @@ namespace STOCKPAP.Views
         private TextBox txtPassword;
         private RoundedButton btnLogin;
         private Label lblError;
-        private RoundedPanel panelLogin;
 
         public LoginForm()
         {
@@ -22,104 +21,183 @@ namespace STOCKPAP.Views
         private void InitializeComponent()
         {
             this.Text = "StockPap - Iniciar Sesion";
-            this.Size = new Size(400, 500);
+            this.ClientSize = new Size(350, 530);
             this.StartPosition = FormStartPosition.CenterScreen;
             this.FormBorderStyle = FormBorderStyle.FixedSingle;
             this.MaximizeBox = false;
-            this.BackColor = Color.FromArgb(240, 244, 248);
+            this.BackColor = Color.White;
 
-            try
+            // --- Imagen Logo Forzada y Centrada ---
+            PictureBox picLogo = new PictureBox
             {
-                string bgPath = System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Assets", "Images", "login_bg.png");
-                if (System.IO.File.Exists(bgPath))
-                {
-                    this.BackgroundImage = Image.FromFile(bgPath);
-                    this.BackgroundImageLayout = ImageLayout.Stretch;
-                }
+                Size = new Size(250, 120),
+                Location = new Point(50, 30),
+                SizeMode = PictureBoxSizeMode.Zoom,
+                BackColor = Color.Transparent
+            };
+            
+            string logoPath = System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Assets", "Images", "logo.png");
+            if (System.IO.File.Exists(logoPath))
+            {
+                picLogo.Image = Image.FromFile(logoPath);
             }
-            catch { }
+            this.Controls.Add(picLogo);
 
-            panelLogin = new RoundedPanel
-            {
-                Size = new Size(320, 380),
-                Location = new Point(32, 40),
-                BackColor = Color.FromArgb(245, 255, 255, 255),
-                BorderRadius = 20
-            };
-            this.Controls.Add(panelLogin);
+            int startY = 170;
 
-            Label lblTitle = new Label
+            // --- Etiqueta y campo de Usuario ---
+            Label lblUser = new Label
             {
-                Text = "StockPap",
-                Font = new Font("Segoe UI", 24, FontStyle.Bold),
-                ForeColor = Color.FromArgb(30, 96, 255),
+                Text = "Usuario",
+                Font = new Font("Segoe UI", 10, FontStyle.Bold),
+                ForeColor = Color.FromArgb(40, 50, 60),
                 AutoSize = true,
-                Location = new Point(80, 40)
+                Location = new Point(40, startY)
             };
-            panelLogin.Controls.Add(lblTitle);
+            this.Controls.Add(lblUser);
 
-            Label lblSubtitle = new Label
+            Panel pnlUser = new Panel
             {
-                Text = "Sistema de Inventario",
-                Font = new Font("Segoe UI", 10, FontStyle.Regular),
-                ForeColor = Color.Gray,
-                AutoSize = true,
-                Location = new Point(90, 85)
+                Size = new Size(270, 36),
+                Location = new Point(40, startY + 25),
+                BackColor = Color.White,
+                BorderStyle = BorderStyle.FixedSingle
             };
-            panelLogin.Controls.Add(lblSubtitle);
+            
+            Label iconUser = new Label { Text = "👤", Font = new Font("Segoe UI Emoji", 11), Location = new Point(5, 6), AutoSize = true, ForeColor = Color.Gray };
+            pnlUser.Controls.Add(iconUser);
 
             txtUsername = new TextBox
             {
-                Location = new Point(40, 150),
-                Size = new Size(240, 30),
+                Location = new Point(35, 6),
+                Size = new Size(225, 30),
                 Font = new Font("Segoe UI", 12),
-                Text = "Usuario",
-                ForeColor = Color.Gray
+                Text = "usuario",
+                ForeColor = Color.Gray,
+                BorderStyle = BorderStyle.None
             };
-            txtUsername.Enter += (s, e) => { if (txtUsername.Text == "Usuario") { txtUsername.Text = ""; txtUsername.ForeColor = Color.Black; } };
-            txtUsername.Leave += (s, e) => { if (string.IsNullOrWhiteSpace(txtUsername.Text)) { txtUsername.Text = "Usuario"; txtUsername.ForeColor = Color.Gray; } };
-            panelLogin.Controls.Add(txtUsername);
+            txtUsername.Enter += (s, e) => { if (txtUsername.Text == "usuario") { txtUsername.Text = ""; txtUsername.ForeColor = Color.Black; } };
+            txtUsername.Leave += (s, e) => { if (string.IsNullOrWhiteSpace(txtUsername.Text)) { txtUsername.Text = "usuario"; txtUsername.ForeColor = Color.Gray; } };
+            txtUsername.KeyDown += (s, e) => { if (e.KeyCode == Keys.Enter) { e.SuppressKeyPress = true; BtnLogin_Click(btnLogin, EventArgs.Empty); } };
+            pnlUser.Controls.Add(txtUsername);
+            this.Controls.Add(pnlUser);
+
+            // --- Etiqueta y campo de Contraseña ---
+            Label lblPass = new Label
+            {
+                Text = "Contraseña",
+                Font = new Font("Segoe UI", 10, FontStyle.Bold),
+                ForeColor = Color.FromArgb(40, 50, 60),
+                AutoSize = true,
+                Location = new Point(40, startY + 75)
+            };
+            this.Controls.Add(lblPass);
+
+            Panel pnlPass = new Panel
+            {
+                Size = new Size(270, 36),
+                Location = new Point(40, startY + 100),
+                BackColor = Color.White,
+                BorderStyle = BorderStyle.FixedSingle
+            };
+
+            Label iconPass = new Label { Text = "🔒", Font = new Font("Segoe UI Emoji", 11), Location = new Point(5, 6), AutoSize = true, ForeColor = Color.Gray };
+            pnlPass.Controls.Add(iconPass);
 
             txtPassword = new TextBox
             {
-                Location = new Point(40, 200),
-                Size = new Size(240, 30),
+                Location = new Point(35, 6),
+                Size = new Size(225, 30),
                 Font = new Font("Segoe UI", 12),
-                Text = "Contrasena",
-                ForeColor = Color.Gray
+                Text = "********",
+                ForeColor = Color.Gray,
+                BorderStyle = BorderStyle.None
             };
-            txtPassword.Enter += (s, e) => { if (txtPassword.Text == "Contrasena") { txtPassword.Text = ""; txtPassword.ForeColor = Color.Black; txtPassword.PasswordChar = '*'; } };
-            txtPassword.Leave += (s, e) => { if (string.IsNullOrWhiteSpace(txtPassword.Text)) { txtPassword.Text = "Contrasena"; txtPassword.ForeColor = Color.Gray; txtPassword.PasswordChar = '\0'; } };
-            panelLogin.Controls.Add(txtPassword);
+            txtPassword.Enter += (s, e) => { if (txtPassword.Text == "********") { txtPassword.Text = ""; txtPassword.ForeColor = Color.Black; txtPassword.PasswordChar = '●'; } };
+            txtPassword.Leave += (s, e) => { if (string.IsNullOrWhiteSpace(txtPassword.Text)) { txtPassword.Text = "********"; txtPassword.ForeColor = Color.Gray; txtPassword.PasswordChar = '\0'; } };
+            txtPassword.KeyDown += (s, e) => { if (e.KeyCode == Keys.Enter) { e.SuppressKeyPress = true; BtnLogin_Click(btnLogin, EventArgs.Empty); } };
+            pnlPass.Controls.Add(txtPassword);
+            this.Controls.Add(pnlPass);
 
+            // --- Recordarme y Olvidaste tu contraseña ---
+            CheckBox chkRecordarme = new CheckBox
+            {
+                Text = "Recordarme",
+                Font = new Font("Segoe UI", 9, FontStyle.Regular),
+                ForeColor = Color.FromArgb(60, 70, 80),
+                AutoSize = true,
+                Location = new Point(40, startY + 150),
+                Cursor = Cursors.Hand
+            };
+            this.Controls.Add(chkRecordarme);
+
+            LinkLabel lnkRestore = new LinkLabel
+            {
+                Text = "¿Olvidaste tu contraseña?",
+                Location = new Point(140, startY + 152),
+                Size = new Size(170, 20),
+                Font = new Font("Segoe UI", 9, FontStyle.Regular),
+                ActiveLinkColor = Color.FromArgb(10, 70, 200),
+                LinkColor = Color.FromArgb(30, 96, 255), // Azul solicitado
+                TextAlign = ContentAlignment.MiddleRight,
+                Cursor = Cursors.Hand
+            };
+            lnkRestore.LinkClicked += (s, ev) =>
+            {
+                using (var form = new ResetPasswordForm())
+                {
+                    form.ShowDialog(this);
+                }
+            };
+            this.Controls.Add(lnkRestore);
+
+            // --- Botón Ingresar ---
+            btnLogin = new RoundedButton
+            {
+                Text = "Ingresar",
+                Size = new Size(270, 45),
+                Location = new Point(40, startY + 195),
+                BackColor = Color.FromArgb(30, 96, 255), // Azul solicitado
+                ForeColor = Color.White,
+                Font = new Font("Segoe UI", 12, FontStyle.Bold),
+                BorderRadius = 8,
+                Cursor = Cursors.Hand
+            };
+            btnLogin.Click += BtnLogin_Click;
+            this.Controls.Add(btnLogin);
+
+            // --- Mensaje de error ---
             lblError = new Label
             {
-                Location = new Point(40, 240),
-                Size = new Size(240, 20),
+                Location = new Point(40, startY + 250),
+                Size = new Size(270, 20),
                 ForeColor = Color.Red,
                 Font = new Font("Segoe UI", 9),
                 TextAlign = ContentAlignment.MiddleCenter
             };
-            panelLogin.Controls.Add(lblError);
+            this.Controls.Add(lblError);
 
-            btnLogin = new RoundedButton
-            {
-                Text = "Ingresar",
-                Size = new Size(240, 45),
-                Location = new Point(40, 280),
-                BackColor = Color.FromArgb(30, 96, 255),
-                ForeColor = Color.White,
-                Font = new Font("Segoe UI", 12, FontStyle.Bold),
-                BorderRadius = 10
-            };
-            btnLogin.Click += BtnLogin_Click;
-            panelLogin.Controls.Add(btnLogin);
+            this.AcceptButton = btnLogin;
         }
 
         private void BtnLogin_Click(object sender, EventArgs e)
         {
             string user = txtUsername.Text.Trim();
             string pass = txtPassword.Text.Trim();
+
+            if (string.IsNullOrEmpty(user) || user == "usuario")
+            {
+                lblError.Text = "Por favor ingrese su usuario.";
+                txtUsername.Focus();
+                return;
+            }
+
+            if (string.IsNullOrEmpty(pass) || pass == "********")
+            {
+                lblError.Text = "Por favor ingrese su contraseña.";
+                txtPassword.Focus();
+                return;
+            }
 
             try
             {
@@ -135,7 +213,7 @@ namespace STOCKPAP.Views
                 }
                 else
                 {
-                    lblError.Text = "Usuario o contrasena incorrectos.";
+                    lblError.Text = "Usuario o contraseña incorrectos.";
                 }
             }
             catch (Exception ex)

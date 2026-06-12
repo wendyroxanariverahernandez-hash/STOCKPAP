@@ -4,9 +4,13 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Windows.Forms;
+using System.Collections.Generic;
 using STOCKPAP.DataAccess;
 using STOCKPAP.Models;
 using STOCKPAP.Utilities;
+using iTextSharp.text;
+using iTextSharp.text.pdf;
+using Font = System.Drawing.Font;
 
 namespace STOCKPAP.Views
 {
@@ -15,6 +19,7 @@ namespace STOCKPAP.Views
         private readonly ProductoRepository repoProducto;
         private readonly ProveedorRepository repoProveedor;
         private readonly MovimientoRepository repoMovimiento;
+        private readonly Usuario currentUser;
         private readonly bool puedeEditar;
 
         private DataGridView dgvProductos;
@@ -25,9 +30,20 @@ namespace STOCKPAP.Views
         private Label lblValorInv;
         private Label lblStockBajo;
 
-        public ReportesView(bool puedeEditar = true)
+        // Filtros de Fecha
+        private ComboBox cmbRangoFecha;
+        private DateTimePicker dtpDesde;
+        private DateTimePicker dtpHasta;
+        private Panel pnlCustomDates;
+
+        private Label lblReporte;
+        private ComboBox cmbTipoReporte;
+        private RoundedButton btnExportar;
+
+        public ReportesView(Usuario user)
         {
-            this.puedeEditar = puedeEditar;
+            this.currentUser = user;
+            this.puedeEditar = user != null && string.Equals(user.Rol, "Admin", StringComparison.OrdinalIgnoreCase);
             repoProducto = new ProductoRepository();
             repoProveedor = new ProveedorRepository();
             repoMovimiento = new MovimientoRepository();
@@ -41,6 +57,7 @@ namespace STOCKPAP.Views
             this.Padding = new Padding(30);
             this.AutoScroll = true;
 
+            // ── Título ──────────────────────────────────────────────────────
             Label lblTitle = new Label
             {
                 Text = "Movimientos y Reportes",
@@ -53,7 +70,7 @@ namespace STOCKPAP.Views
 
             lblSubtitle = new Label
             {
-                Text = "Consulta inventario, movimientos y descargas por separado",
+                Text = "Consulta inventario, movimientos y exporta reportes detallados",
                 Font = new Font("Segoe UI", 11),
                 ForeColor = Color.Gray,
                 AutoSize = true,
@@ -61,52 +78,140 @@ namespace STOCKPAP.Views
             };
             Controls.Add(lblSubtitle);
 
-            FlowLayoutPanel accionesPanel = new FlowLayoutPanel
+            // ── Panel Superior (Filtros y Exportación) ───────────────────
+            RoundedPanel panelSuperior = new RoundedPanel
             {
-                Size = new Size(790, 90),
-                Location = new Point(250, 25),
-                Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right,
-                FlowDirection = FlowDirection.LeftToRight,
-                WrapContents = true
+                Location = new Point(30, 110),
+                Size = new Size(960, 80),
+                BackColor = Color.White,
+                BorderRadius = 10,
+                Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right
             };
-            Controls.Add(accionesPanel);
+            Controls.Add(panelSuperior);
 
-            RoundedButton btnNuevoMovimiento = CrearBoton("Nuevo Movimiento", Color.FromArgb(30, 96, 255));
+            // Filtro Rango de Tiempo
+            Label lblFiltro = new Label
+            {
+                Text = "Rango de Tiempo:",
+                Font = new Font("Segoe UI", 9.5f, FontStyle.Bold),
+                ForeColor = Color.FromArgb(60, 60, 80),
+                Location = new Point(15, 30),
+                AutoSize = true
+            };
+            panelSuperior.Controls.Add(lblFiltro);
+
+            cmbRangoFecha = new ComboBox
+            {
+                Location = new Point(135, 27),
+                Width = 120,
+                Font = new Font("Segoe UI", 10),
+                DropDownStyle = ComboBoxStyle.DropDownList
+            };
+            cmbRangoFecha.Items.AddRange(new[] { "Todo el historial", "Hoy (Día)", "Esta semana", "Este mes", "Personalizado" });
+            cmbRangoFecha.SelectedIndex = 0;
+            cmbRangoFecha.SelectedIndexChanged += CmbRangoFecha_SelectedIndexChanged;
+            panelSuperior.Controls.Add(cmbRangoFecha);
+
+            pnlCustomDates = new Panel
+            {
+                Location = new Point(260, 20),
+                Size = new Size(295, 40),
+                BackColor = Color.Transparent,
+                Visible = false
+            };
+            panelSuperior.Controls.Add(pnlCustomDates);
+
+            Label lblDesde = new Label { Text = "Desde:", Font = new Font("Segoe UI", 9), ForeColor = Color.Gray, Location = new Point(0, 12), AutoSize = true };
+            dtpDesde = new DateTimePicker { Location = new Point(45, 8), Width = 100, Format = DateTimePickerFormat.Short, Font = new Font("Segoe UI", 9.5f) };
+            Label lblHasta = new Label { Text = "Hasta:", Font = new Font("Segoe UI", 9), ForeColor = Color.Gray, Location = new Point(150, 12), AutoSize = true };
+            dtpHasta = new DateTimePicker { Location = new Point(190, 8), Width = 100, Format = DateTimePickerFormat.Short, Font = new Font("Segoe UI", 9.5f) };
+            
+            dtpDesde.ValueChanged += (s, e) => LoadData();
+            dtpHasta.ValueChanged += (s, e) => LoadData();
+
+            pnlCustomDates.Controls.Add(lblDesde);
+            pnlCustomDates.Controls.Add(dtpDesde);
+            pnlCustomDates.Controls.Add(lblHasta);
+            pnlCustomDates.Controls.Add(dtpHasta);
+
+            // Botón Nuevo Movimiento (Mover a la derecha del todo)
+            RoundedButton btnNuevoMovimiento = CrearBoton("✚ Movimiento", Color.FromArgb(30, 96, 255));
+            btnNuevoMovimiento.Size = new Size(105, 32);
+            btnNuevoMovimiento.Location = new Point(850, 25);
+            btnNuevoMovimiento.Anchor = AnchorStyles.Top | AnchorStyles.Right;
             btnNuevoMovimiento.Visible = puedeEditar;
             btnNuevoMovimiento.Click += BtnNuevoMovimiento_Click;
-            accionesPanel.Controls.Add(btnNuevoMovimiento);
+            panelSuperior.Controls.Add(btnNuevoMovimiento);
 
-            RoundedButton btnInventarioPdf = CrearBoton("Inventario PDF", Color.FromArgb(100, 116, 139));
-            btnInventarioPdf.Click += (s, e) => ExportarInventarioPdf();
-            accionesPanel.Controls.Add(btnInventarioPdf);
+            // Sección de Exportación de Reportes
+            lblReporte = new Label
+            {
+                Text = "Reporte:",
+                Font = new Font("Segoe UI", 9.5f, FontStyle.Bold),
+                ForeColor = Color.FromArgb(60, 60, 80),
+                Location = new Point(270, 30),
+                AutoSize = true
+            };
+            panelSuperior.Controls.Add(lblReporte);
 
-            RoundedButton btnMovimientosPdf = CrearBoton("Movimientos PDF", Color.FromArgb(124, 58, 237));
-            btnMovimientosPdf.Click += (s, e) => ExportarMovimientosPdf();
-            accionesPanel.Controls.Add(btnMovimientosPdf);
+            cmbTipoReporte = new ComboBox
+            {
+                Location = new Point(335, 27),
+                Width = 125,
+                Font = new Font("Segoe UI", 10),
+                DropDownStyle = ComboBoxStyle.DropDownList
+            };
+            cmbTipoReporte.Items.AddRange(new[] { "Inventario PDF", "Inventario Excel", "Movimientos PDF", "Movimientos Excel", "Consolidado PDF" });
+            
+            string defFormat = ConfigHelper.Obtener("FormatoReporteDefecto", "PDF");
+            cmbTipoReporte.SelectedIndex = defFormat == "Excel (.xls)" ? 1 : 0;
+            
+            panelSuperior.Controls.Add(cmbTipoReporte);
 
-            RoundedButton btnTicketGlobal = CrearBoton("Ticket Global PDF", Color.FromArgb(234, 88, 12));
-            btnTicketGlobal.Click += (s, e) => ExportarTicketGlobalPdf();
-            accionesPanel.Controls.Add(btnTicketGlobal);
+            btnExportar = CrearBoton("Exportar", Color.FromArgb(22, 163, 74));
+            btnExportar.Size = new Size(80, 32);
+            btnExportar.Location = new Point(470, 25);
+            btnExportar.Click += (s, e) => {
+                string sel = cmbTipoReporte.SelectedItem.ToString();
+                if (sel == "Inventario PDF") ExportarInventarioPdf();
+                else if (sel == "Inventario Excel") ExportarInventarioExcel();
+                else if (sel == "Movimientos PDF") ExportarMovimientosPdf();
+                else if (sel == "Movimientos Excel") ExportarMovimientosExcel();
+                else if (sel == "Consolidado PDF") ExportarTodoJuntoPdf();
+            };
+            panelSuperior.Controls.Add(btnExportar);
 
-            lblTotalProd = CrearTarjetaStat("Total Productos", "...", "productos", Color.FromArgb(30, 96, 255), 30, 110);
-            lblTotalUnidades = CrearTarjetaStat("Unidades Totales", "...", "en inventario", Color.FromArgb(22, 163, 74), 225, 110);
-            lblValorInv = CrearTarjetaStat("Valor Inventario", "...", "valor estimado", Color.FromArgb(234, 88, 12), 420, 110);
-            lblStockBajo = CrearTarjetaStat("Stock Bajo", "...", "necesitan atencion", Color.FromArgb(190, 18, 60), 615, 110);
+            // Ajuste visual si fechas personalizadas están visibles
+            cmbRangoFecha.SelectedIndexChanged += (s, e) => {
+                bool isCustom = cmbRangoFecha.SelectedIndex == 4;
+                // Si es custom, el reporte consolidado/movimientos tomara las fechas de dtp
+            };
 
-            RoundedPanel panelInventario = CrearPanelTabla("Detalle del Inventario", 30, 270, 960, 320);
+
+            // ── Estadísticas ────────────────────────────────────────────────
+            int statsY = 210;
+            lblTotalProd = CrearTarjetaStat("Total Productos", "...", "productos registrados", Color.FromArgb(30, 96, 255), 30, statsY);
+            lblTotalUnidades = CrearTarjetaStat("Unidades Totales", "...", "en inventario", Color.FromArgb(22, 163, 74), 225, statsY);
+            lblValorInv = CrearTarjetaStat("Valor Inventario", "...", "valor de venta", Color.FromArgb(234, 88, 12), 420, statsY);
+            lblStockBajo = CrearTarjetaStat("Stock Bajo", "...", "necesitan reabastecer", Color.FromArgb(190, 18, 60), 615, statsY);
+
+            // ── Tabla Detalle Inventario ────────────────────────────────────
+            RoundedPanel panelInventario = CrearPanelTabla("Detalle del Inventario", 30, 360, 960, 320);
             dgvProductos = CrearGrid();
-            dgvProductos.Columns.Add(new DataGridViewTextBoxColumn { Name = "colNombre", HeaderText = "Producto", FillWeight = 28 });
-            dgvProductos.Columns.Add(new DataGridViewTextBoxColumn { Name = "colCategoria", HeaderText = "Categoria", FillWeight = 16 });
-            dgvProductos.Columns.Add(new DataGridViewTextBoxColumn { Name = "colVenta", HeaderText = "Precio Venta", FillWeight = 14 });
-            dgvProductos.Columns.Add(new DataGridViewTextBoxColumn { Name = "colStock", HeaderText = "Stock", FillWeight = 10 });
-            dgvProductos.Columns.Add(new DataGridViewTextBoxColumn { Name = "colMinimo", HeaderText = "Minimo", FillWeight = 10 });
-            dgvProductos.Columns.Add(new DataGridViewTextBoxColumn { Name = "colValor", HeaderText = "Valor", FillWeight = 14 });
-            dgvProductos.Columns.Add(new DataGridViewTextBoxColumn { Name = "colEstado", HeaderText = "Estado", FillWeight = 14 });
+            dgvProductos.Columns.Add(new DataGridViewTextBoxColumn { Name = "colNombre", HeaderText = "Producto", FillWeight = 26 });
+            dgvProductos.Columns.Add(new DataGridViewTextBoxColumn { Name = "colClase", HeaderText = "Clase", FillWeight = 14 });
+            dgvProductos.Columns.Add(new DataGridViewTextBoxColumn { Name = "colMarca", HeaderText = "Marca", FillWeight = 12 });
+            dgvProductos.Columns.Add(new DataGridViewTextBoxColumn { Name = "colVenta", HeaderText = "Precio Venta", FillWeight = 12 });
+            dgvProductos.Columns.Add(new DataGridViewTextBoxColumn { Name = "colStock", HeaderText = "Stock", FillWeight = 9 });
+            dgvProductos.Columns.Add(new DataGridViewTextBoxColumn { Name = "colMinimo", HeaderText = "Mínimo", FillWeight = 9 });
+            dgvProductos.Columns.Add(new DataGridViewTextBoxColumn { Name = "colValor", HeaderText = "Valor Total", FillWeight = 12 });
+            dgvProductos.Columns.Add(new DataGridViewTextBoxColumn { Name = "colEstado", HeaderText = "Estado", FillWeight = 12 });
             dgvProductos.CellFormatting += DgvProductos_CellFormatting;
             panelInventario.Controls.Add(dgvProductos);
             Controls.Add(panelInventario);
 
-            RoundedPanel panelMovimientos = CrearPanelTabla("Historial de Movimientos", 30, 620, 960, 320);
+            // ── Tabla Historial Movimientos ─────────────────────────────────
+            RoundedPanel panelMovimientos = CrearPanelTabla("Historial de Movimientos", 30, 710, 960, 320);
             dgvMovimientos = CrearGrid();
             dgvMovimientos.Columns.Add(new DataGridViewTextBoxColumn { Name = "colFecha", HeaderText = "Fecha", FillWeight = 18 });
             dgvMovimientos.Columns.Add(new DataGridViewTextBoxColumn { Name = "colTipo", HeaderText = "Tipo", FillWeight = 12 });
@@ -116,6 +221,10 @@ namespace STOCKPAP.Views
             dgvMovimientos.Columns.Add(new DataGridViewTextBoxColumn { Name = "colDetalle", HeaderText = "Detalle", FillWeight = 34 });
             panelMovimientos.Controls.Add(dgvMovimientos);
             Controls.Add(panelMovimientos);
+
+            // Spacer de scroll
+            Panel spacer = new Panel { Location = new Point(0, 1025), Size = new Size(10, 30), BackColor = Color.Transparent };
+            Controls.Add(spacer);
         }
 
         private RoundedButton CrearBoton(string texto, Color color)
@@ -123,12 +232,12 @@ namespace STOCKPAP.Views
             return new RoundedButton
             {
                 Text = texto,
-                Size = new Size(155, 40),
-                Margin = new Padding(0, 0, 10, 8),
+                Size = new Size(145, 36),
+                Margin = new Padding(0, 0, 8, 8),
                 BackColor = color,
                 ForeColor = Color.White,
                 Font = new Font("Segoe UI", 9, FontStyle.Bold),
-                BorderRadius = 10,
+                BorderRadius = 8,
                 Cursor = Cursors.Hand
             };
         }
@@ -184,6 +293,8 @@ namespace STOCKPAP.Views
             };
             grid.ColumnHeadersDefaultCellStyle.BackColor = Color.FromArgb(245, 247, 250);
             grid.ColumnHeadersDefaultCellStyle.ForeColor = Color.FromArgb(60, 60, 80);
+            grid.ColumnHeadersDefaultCellStyle.SelectionBackColor = Color.FromArgb(245, 247, 250);
+            grid.ColumnHeadersDefaultCellStyle.SelectionForeColor = Color.FromArgb(60, 60, 80);
             grid.ColumnHeadersDefaultCellStyle.Font = new Font("Segoe UI", 8, FontStyle.Bold);
             grid.ColumnHeadersHeight = 34;
             grid.RowTemplate.Height = 32;
@@ -194,24 +305,89 @@ namespace STOCKPAP.Views
             return grid;
         }
 
+        private void CmbRangoFecha_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            bool isCustom = cmbRangoFecha.SelectedIndex == 4;
+            pnlCustomDates.Visible = isCustom;
+
+            if (isCustom)
+            {
+                lblReporte.Location = new Point(560, 30);
+                cmbTipoReporte.Location = new Point(630, 27);
+                btnExportar.Location = new Point(765, 25);
+            }
+            else
+            {
+                lblReporte.Location = new Point(270, 30);
+                cmbTipoReporte.Location = new Point(340, 27);
+                btnExportar.Location = new Point(475, 25);
+            }
+
+            LoadData();
+        }
+
+        private DateTime GetFechaInicioFiltro()
+        {
+            int idx = cmbRangoFecha.SelectedIndex;
+            if (idx == 1) // Hoy
+                return DateTime.Today;
+            if (idx == 2) // Esta semana
+                return DateTime.Today.AddDays(-(int)DateTime.Today.DayOfWeek); // Principio de semana
+            if (idx == 3) // Este mes
+                return new DateTime(DateTime.Today.Year, DateTime.Today.Month, 1);
+            if (idx == 4) // Personalizado
+                return dtpDesde.Value.Date;
+            
+            return DateTime.MinValue; // Todo el historial
+        }
+
+        private DateTime GetFechaFinFiltro()
+        {
+            int idx = cmbRangoFecha.SelectedIndex;
+            if (idx == 1) // Hoy
+                return DateTime.Today.AddDays(1).AddTicks(-1);
+            if (idx == 2) // Esta semana
+                return DateTime.Today.AddDays(7 - (int)DateTime.Today.DayOfWeek).AddTicks(-1);
+            if (idx == 3) // Este mes
+                return new DateTime(DateTime.Today.Year, DateTime.Today.Month, DateTime.DaysInMonth(DateTime.Today.Year, DateTime.Today.Month)).AddTicks(-1);
+            if (idx == 4) // Personalizado
+                return dtpHasta.Value.Date.AddDays(1).AddTicks(-1);
+
+            return DateTime.MaxValue; // Todo
+        }
+
         private void LoadData()
         {
             var productos = repoProducto.ObtenerTodos();
             var movimientos = repoMovimiento.ObtenerTodos();
 
+            // Filtrar movimientos por fecha
+            DateTime inicio = GetFechaInicioFiltro();
+            DateTime fin = GetFechaFinFiltro();
+            movimientos = movimientos.Where(m => m.Fecha >= inicio && m.Fecha <= fin).ToList();
+
+            string moneda = ConfigHelper.Obtener("Moneda", "MXN");
+            string sym = moneda.Contains("USD") ? "USD$" : moneda.Contains("EUR") ? "€" : "$";
+
+            // Actualizar tarjetas
             lblTotalProd.Text = productos.Count.ToString();
             lblTotalUnidades.Text = productos.Sum(p => p.Stock).ToString();
-            lblValorInv.Text = $"${productos.Sum(p => p.Stock * p.PrecioVenta):0.00}";
+            lblValorInv.Text = $"{sym}{productos.Sum(p => p.Stock * p.PrecioVenta):0.00}";
             lblStockBajo.Text = productos.Count(p => p.Stock <= p.StockMinimo).ToString();
-            lblSubtitle.Text = $"Ultima actualizacion: {DateTime.Now:dd/MM/yyyy HH:mm}  |  {movimientos.Count} movimientos";
 
+            lblSubtitle.Text = $"Rango: {cmbRangoFecha.Text}  |  Actualizado: {DateTime.Now:dd/MM/yyyy HH:mm}  |  {movimientos.Count} movimientos";
+
+            // Detalle de Inventario
             dgvProductos.Rows.Clear();
             foreach (var p in productos)
             {
                 bool bajo = p.Stock <= p.StockMinimo;
-                dgvProductos.Rows.Add(p.Nombre, p.Categoria, $"${p.PrecioVenta:0.00}", p.Stock, p.StockMinimo, $"${p.Stock * p.PrecioVenta:0.00}", bajo ? "Stock Bajo" : "OK");
+                string clase = string.IsNullOrEmpty(p.Clase) ? "Sin clase" : p.Clase;
+                string marca = string.IsNullOrEmpty(p.Marca) ? "Sin marca" : p.Marca;
+                dgvProductos.Rows.Add(p.Nombre, clase, marca, $"{sym}{p.PrecioVenta:0.00}", p.Stock, p.StockMinimo, $"{sym}{p.Stock * p.PrecioVenta:0.00}", bajo ? "Stock Bajo" : "OK");
             }
 
+            // Historial de Movimientos
             dgvMovimientos.Rows.Clear();
             foreach (var m in movimientos)
             {
@@ -233,7 +409,7 @@ namespace STOCKPAP.Views
             if (!string.IsNullOrWhiteSpace(movimiento.Motivo))
                 return movimiento.Motivo;
 
-            return $"{movimiento.Tipo} de {Math.Abs(movimiento.Cantidad)} unidad(es). Stock {movimiento.StockAnterior} a {movimiento.StockNuevo}.";
+            return $"{movimiento.Tipo} de {Math.Abs(movimiento.Cantidad)} unidad(es).";
         }
 
         private void DgvProductos_CellFormatting(object sender, DataGridViewCellFormattingEventArgs e)
@@ -246,103 +422,252 @@ namespace STOCKPAP.Views
             }
         }
 
-        private void ExportarInventarioCsv()
-        {
-            Exportar.GuardarArchivo("Inventario_STOCKPAP", "Archivo CSV|*.csv", ".csv", CrearInventarioCsv());
-        }
-
+        // ── Generación de Reportes PDF con Metadatos y Totales ────────────────
         private void ExportarInventarioPdf()
         {
-            Exportar.GuardarArchivoPdf("Inventario_STOCKPAP", CrearInventarioTxt());
+            var productos = repoProducto.ObtenerTodos();
+            string empresa = ConfigHelper.Obtener("NombreEmpresa", "StockPap");
+            string moneda = ConfigHelper.Obtener("Moneda", "MXN");
+            string sym = moneda.Contains("USD") ? "USD$" : moneda.Contains("EUR") ? "€" : "$";
+
+            var sb = new StringBuilder();
+            sb.AppendLine("==========================================================================");
+            sb.AppendLine($"                        REPORTE DE INVENTARIO - {empresa.ToUpper()}");
+            sb.AppendLine("==========================================================================");
+            sb.AppendLine($"Generado por: {currentUser?.Username ?? "Usuario"}");
+            sb.AppendLine($"Fecha: {DateTime.Now:dd/MM/yyyy HH:mm:ss}");
+            sb.AppendLine($"Filtros aplicados: Categorías: Todas");
+            sb.AppendLine("--------------------------------------------------------------------------");
+            sb.AppendLine($"Total Productos Diferentes: {productos.Count}");
+            sb.AppendLine($"Total de Piezas en Stock: {productos.Sum(p => p.Stock)}");
+            sb.AppendLine($"Valor del Inventario (Venta): {sym}{productos.Sum(p => p.Stock * p.PrecioVenta):0.00}");
+            sb.AppendLine($"Productos con Stock Bajo: {productos.Count(p => p.Stock <= p.StockMinimo)}");
+            sb.AppendLine("==========================================================================");
+            sb.AppendLine();
+            sb.AppendLine("PRODUCTO | CLASE | MARCA | PRECIO VENTA | STOCK | STOCK MÍN | ESTADO");
+            sb.AppendLine("--------------------------------------------------------------------------");
+            foreach (var p in productos.OrderBy(x => x.Nombre))
+            {
+                string estado = p.Stock <= p.StockMinimo ? "Bajo" : "OK";
+                string clase = string.IsNullOrEmpty(p.Clase) ? "N/A" : p.Clase;
+                string marca = string.IsNullOrEmpty(p.Marca) ? "N/A" : p.Marca;
+                sb.AppendLine($"{p.Nombre} | {clase} | {marca} | {sym}{p.PrecioVenta:0.00} | {p.Stock} | {p.StockMinimo} | {estado}");
+            }
+
+            Exportar.GuardarArchivoPdf("Reporte_Inventario", sb.ToString());
         }
 
         private void ExportarMovimientosPdf()
         {
-            Exportar.GuardarArchivoPdf("Movimientos_STOCKPAP", CrearMovimientosTxt());
+            var movimientos = repoMovimiento.ObtenerTodos();
+            DateTime inicio = GetFechaInicioFiltro();
+            DateTime fin = GetFechaFinFiltro();
+            movimientos = movimientos.Where(m => m.Fecha >= inicio && m.Fecha <= fin).ToList();
+
+            string empresa = ConfigHelper.Obtener("NombreEmpresa", "StockPap");
+
+            var sb = new StringBuilder();
+            sb.AppendLine("==========================================================================");
+            sb.AppendLine($"                       REPORTE DE MOVIMIENTOS - {empresa.ToUpper()}");
+            sb.AppendLine("==========================================================================");
+            sb.AppendLine($"Generado por: {currentUser?.Username ?? "Usuario"}");
+            sb.AppendLine($"Fecha de generación: {DateTime.Now:dd/MM/yyyy HH:mm:ss}");
+            sb.AppendLine($"Filtro Temporal: {cmbRangoFecha.Text}");
+            sb.AppendLine($"Rango de fechas: {inicio:dd/MM/yyyy} - {fin:dd/MM/yyyy}");
+            sb.AppendLine("--------------------------------------------------------------------------");
+            sb.AppendLine($"Total Movimientos en Rango: {movimientos.Count}");
+            sb.AppendLine($"Total Entradas: {movimientos.Where(m => m.Tipo == "Entrada").Sum(m => Math.Abs(m.Cantidad))} unidades");
+            sb.AppendLine($"Total Salidas: {movimientos.Where(m => m.Tipo == "Salida").Sum(m => Math.Abs(m.Cantidad))} unidades");
+            sb.AppendLine("==========================================================================");
+            sb.AppendLine();
+            sb.AppendLine("FECHA Y HORA | TIPO | PRODUCTO | CANTIDAD | STOCK ANT | STOCK NUEVO | MOTIVO");
+            sb.AppendLine("--------------------------------------------------------------------------");
+            foreach (var m in movimientos)
+            {
+                string signo = m.Tipo == "Entrada" ? "+" : "-";
+                sb.AppendLine($"{m.Fecha:dd/MM/yyyy HH:mm} | {m.Tipo} | {m.ProductoNombre} | {signo}{Math.Abs(m.Cantidad)} | {m.StockAnterior} | {m.StockNuevo} | {CrearDetalleMovimiento(m)}");
+            }
+
+            Exportar.GuardarArchivoPdf("Reporte_Movimientos", sb.ToString());
         }
 
-        private void ExportarTicketGlobalPdf()
-        {
-            Exportar.GuardarArchivoPdf("Ticket_Global_STOCKPAP", CrearTicketGlobalTxt());
-        }
-
-        private string CrearInventarioCsv()
+        // ── Generación de Reportes Excel (.xls HTML estructurado) ────────────
+        private void ExportarInventarioExcel()
         {
             var productos = repoProducto.ObtenerTodos();
-            var sb = new StringBuilder();
-            sb.AppendLine("\"Producto\",\"Categoria\",\"Precio Compra\",\"Precio Venta\",\"Stock\",\"Stock Minimo\",\"Valor Total\",\"Estado\"");
+            
+            var html = new StringBuilder();
+            html.AppendLine("<html xmlns:o=\"urn:schemas-microsoft-com:office:office\" xmlns:x=\"urn:schemas-microsoft-com:office:excel\" xmlns=\"http://www.w3.org/TR/REC-html40\">");
+            html.AppendLine("<head>");
+            html.AppendLine("<meta http-equiv=\"Content-Type\" content=\"text/html; charset=utf-8\" />");
+            html.AppendLine("<style>");
+            html.AppendLine("table { border-collapse: collapse; font-family: Segoe UI, sans-serif; font-size: 10pt; }");
+            html.AppendLine("th { background-color: #1e60ff; color: #ffffff; font-weight: bold; border: 1px solid #dcdcdc; padding: 6px; }");
+            html.AppendLine("td { border: 1px solid #eef2f9; padding: 6px; }");
+            html.AppendLine(".title { font-size: 16pt; font-weight: bold; color: #1e60ff; }");
+            html.AppendLine(".meta { color: #808080; font-style: italic; }");
+            html.AppendLine(".total { font-weight: bold; background-color: #f5f7fa; }");
+            html.AppendLine("</style>");
+            html.AppendLine("</head>");
+            string empresa = ConfigHelper.Obtener("NombreEmpresa", "StockPap");
+            string moneda = ConfigHelper.Obtener("Moneda", "MXN");
+            string sym = moneda.Contains("USD") ? "USD$" : moneda.Contains("EUR") ? "€" : "$";
+
+            html.AppendLine($"<div class=\"title\">REPORTE DE INVENTARIO - {empresa.ToUpper()}</div>");
+            html.AppendLine($"<div class=\"meta\">Generado por: {currentUser?.Username ?? "Usuario"} | Fecha: {DateTime.Now:dd/MM/yyyy HH:mm:ss} | Filtros: Todos</div>");
+            html.AppendLine("<br/>");
+            
+            html.AppendLine("<table>");
+            html.AppendLine("<tr>");
+            html.AppendLine("<th>ID</th><th>Nombre</th><th>Código Barras</th><th>Clase</th><th>Subclase</th><th>Marca</th><th>Precio Venta</th><th>Stock</th><th>Stock Mín.</th><th>Proveedor</th><th>Estado</th>");
+            html.AppendLine("</tr>");
+            
             foreach (var p in productos)
             {
-                bool bajo = p.Stock <= p.StockMinimo;
-                sb.AppendLine($"\"{EscapeCsv(p.Nombre)}\",\"{EscapeCsv(p.Categoria)}\",{p.PrecioCompra:0.00},{p.PrecioVenta:0.00},{p.Stock},{p.StockMinimo},{p.Stock * p.PrecioVenta:0.00},\"{(bajo ? "Stock Bajo" : "OK")}\"");
+                string estado = p.Stock <= p.StockMinimo ? "STOCK BAJO" : "OK";
+                string prov = string.IsNullOrEmpty(p.ProveedorNombre) ? "Sin proveedor" : p.ProveedorNombre;
+                html.AppendLine("<tr>");
+                html.AppendLine($"<td>{p.Id}</td>");
+                html.AppendLine($"<td>{p.Nombre}</td>");
+                html.AppendLine($"<td>{p.CodigoBarras}</td>");
+                html.AppendLine($"<td>{p.Clase}</td>");
+                html.AppendLine($"<td>{p.Subclase}</td>");
+                html.AppendLine($"<td>{p.Marca}</td>");
+                html.AppendLine($"<td>{sym}{p.PrecioVenta:0.00}</td>");
+                html.AppendLine($"<td>{p.Stock}</td>");
+                html.AppendLine($"<td>{p.StockMinimo}</td>");
+                html.AppendLine($"<td>{prov}</td>");
+                html.AppendLine($"<td style=\"color:{(estado.Contains("BAJO") ? "#be123c" : "#16a34a")}; font-weight:bold;\">{estado}</td>");
+                html.AppendLine("</tr>");
             }
-            return sb.ToString();
+            
+            // Fila de totales
+            html.AppendLine("<tr class=\"total\">");
+            html.AppendLine("<td colspan=\"7\">TOTALES</td>");
+            html.AppendLine($"<td>-</td>");
+            html.AppendLine($"<td>-</td>");
+            html.AppendLine($"<td>{sym}{productos.Sum(p => p.PrecioVenta):0.00} (Prom)</td>");
+            html.AppendLine($"<td>{productos.Sum(p => p.Stock)} (Suma)</td>");
+            html.AppendLine($"<td>-</td>");
+            html.AppendLine($"<td colspan=\"2\">Valor Inventario: {sym}{productos.Sum(p => p.Stock * p.PrecioVenta):0.00}</td>");
+            html.AppendLine("</tr>");
+            html.AppendLine("</table>");
+            html.AppendLine("</body>");
+            html.AppendLine("</html>");
+
+            Exportar.GuardarArchivo("Reporte_Inventario", "Archivo Excel|*.xls", ".xls", html.ToString());
         }
 
-        private string CrearInventarioTxt()
+        private void ExportarMovimientosExcel()
+        {
+            var movimientos = repoMovimiento.ObtenerTodos();
+            DateTime inicio = GetFechaInicioFiltro();
+            DateTime fin = GetFechaFinFiltro();
+            movimientos = movimientos.Where(m => m.Fecha >= inicio && m.Fecha <= fin).ToList();
+
+            var html = new StringBuilder();
+            html.AppendLine("<html xmlns:o=\"urn:schemas-microsoft-com:office:office\" xmlns:x=\"urn:schemas-microsoft-com:office:excel\" xmlns=\"http://www.w3.org/TR/REC-html40\">");
+            html.AppendLine("<head>");
+            html.AppendLine("<meta http-equiv=\"Content-Type\" content=\"text/html; charset=utf-8\" />");
+            html.AppendLine("<style>");
+            html.AppendLine("table { border-collapse: collapse; font-family: Segoe UI, sans-serif; font-size: 10pt; }");
+            html.AppendLine("th { background-color: #7c3aed; color: #ffffff; font-weight: bold; border: 1px solid #dcdcdc; padding: 6px; }");
+            html.AppendLine("td { border: 1px solid #eef2f9; padding: 6px; }");
+            html.AppendLine(".title { font-size: 16pt; font-weight: bold; color: #7c3aed; }");
+            html.AppendLine(".meta { color: #808080; font-style: italic; }");
+            html.AppendLine(".total { font-weight: bold; background-color: #f5f7fa; }");
+            html.AppendLine("</style>");
+            html.AppendLine("</head>");
+            string empresa = ConfigHelper.Obtener("NombreEmpresa", "StockPap");
+            html.AppendLine($"<div class=\"title\">REPORTE DE MOVIMIENTOS - {empresa.ToUpper()}</div>");
+            html.AppendLine($"<div class=\"meta\">Generado por: {currentUser?.Username ?? "Usuario"} | Fecha: {DateTime.Now:dd/MM/yyyy HH:mm:ss} | Rango: {cmbRangoFecha.Text} ({inicio:dd/MM/yyyy} - {fin:dd/MM/yyyy})</div>");
+            html.AppendLine("<br/>");
+
+            html.AppendLine("<table>");
+            html.AppendLine("<tr>");
+            html.AppendLine("<th>ID</th><th>Fecha y Hora</th><th>Tipo</th><th>ID Producto</th><th>Producto</th><th>Cantidad</th><th>Stock Anterior</th><th>Stock Nuevo</th><th>Motivo</th>");
+            html.AppendLine("</tr>");
+
+            foreach (var m in movimientos)
+            {
+                string color = m.Tipo == "Entrada" ? "#27ae60" : (m.Tipo == "Salida" ? "#c0392b" : "#7f8c8d");
+                string prefijo = m.Tipo == "Entrada" ? "+" : (m.Tipo == "Salida" ? "-" : "");
+                html.AppendLine("<tr>");
+                html.AppendLine($"<td>{m.Id}</td>");
+                html.AppendLine($"<td>{m.Fecha:dd/MM/yyyy HH:mm}</td>");
+                html.AppendLine($"<td style=\"color:{color}; font-weight:bold;\">{m.Tipo}</td>");
+                html.AppendLine($"<td>{m.ProductoId}</td>");
+                html.AppendLine($"<td>{m.ProductoNombre}</td>");
+                html.AppendLine($"<td style=\"color:{color}; font-weight:bold;\">{prefijo}{Math.Abs(m.Cantidad)}</td>");
+                html.AppendLine($"<td>{m.StockAnterior}</td>");
+                html.AppendLine($"<td>{m.StockNuevo}</td>");
+                html.AppendLine($"<td>{m.Motivo}</td>");
+                html.AppendLine("</tr>");
+            }
+
+            html.AppendLine("<tr class=\"total\">");
+            html.AppendLine("<td colspan=\"5\">TOTALES EN EL RANGO</td>");
+            html.AppendLine($"<td>Entradas: +{movimientos.Where(m => m.Tipo == "Entrada").Sum(m => Math.Abs(m.Cantidad))} | Salidas: -{movimientos.Where(m => m.Tipo == "Salida").Sum(m => Math.Abs(m.Cantidad))}</td>");
+            html.AppendLine("<td colspan=\"3\"></td>");
+            html.AppendLine("</tr>");
+            html.AppendLine("</table>");
+            html.AppendLine("</body>");
+            html.AppendLine("</html>");
+
+            Exportar.GuardarArchivo("Reporte_Movimientos", "Archivo Excel|*.xls", ".xls", html.ToString());
+        }
+
+        private void ExportarTodoJuntoPdf()
         {
             var productos = repoProducto.ObtenerTodos();
-            var proveedores = repoProveedor.ObtenerTodos();
+            var movimientos = repoMovimiento.ObtenerTodos();
+            DateTime inicio = GetFechaInicioFiltro();
+            DateTime fin = GetFechaFinFiltro();
+            movimientos = movimientos.Where(m => m.Fecha >= inicio && m.Fecha <= fin).ToList();
+
+            string empresa = ConfigHelper.Obtener("NombreEmpresa", "StockPap");
+            string moneda = ConfigHelper.Obtener("Moneda", "MXN");
+            string sym = moneda.Contains("USD") ? "USD$" : moneda.Contains("EUR") ? "€" : "$";
+
             var sb = new StringBuilder();
-            sb.AppendLine("REPORTE DE INVENTARIO - STOCKPAP");
-            sb.AppendLine($"Generado: {DateTime.Now:dd/MM/yyyy HH:mm:ss}");
-            sb.AppendLine(new string('=', 60));
-            sb.AppendLine($"Total productos: {productos.Count}");
-            sb.AppendLine($"Unidades en stock: {productos.Sum(p => p.Stock)}");
-            sb.AppendLine($"Valor inventario: ${productos.Sum(p => p.Stock * p.PrecioVenta):0.00}");
-            sb.AppendLine($"Stock bajo: {productos.Count(p => p.Stock <= p.StockMinimo)}");
-            sb.AppendLine($"Proveedores: {proveedores.Count}");
+            sb.AppendLine("==========================================================================");
+            sb.AppendLine($"                 REPORTE CONSOLIDADO DE INVENTARIO Y MOVIMIENTOS - {empresa.ToUpper()}");
+            sb.AppendLine("==========================================================================");
+            sb.AppendLine($"Generado por: {currentUser?.Username ?? "Usuario"}");
+            sb.AppendLine($"Fecha de generación: {DateTime.Now:dd/MM/yyyy HH:mm:ss}");
+            sb.AppendLine($"Filtro Temporal de Movimientos: {cmbRangoFecha.Text}");
+            sb.AppendLine($"Rango de fechas: {inicio:dd/MM/yyyy} - {fin:dd/MM/yyyy}");
+            sb.AppendLine("--------------------------------------------------------------------------");
+            sb.AppendLine($"Total Productos Diferentes: {productos.Count}");
+            sb.AppendLine($"Total de Hojas/Piezas en Stock: {productos.Sum(p => p.Stock)}");
+            sb.AppendLine($"Valor del Inventario (Venta): {sym}{productos.Sum(p => p.Stock * p.PrecioVenta):0.00}");
+            sb.AppendLine($"Total Movimientos en Rango: {movimientos.Count}");
+            sb.AppendLine("==========================================================================");
             sb.AppendLine();
-            foreach (var p in productos.OrderBy(p => p.Nombre))
+            sb.AppendLine("1. DETALLE DE INVENTARIO");
+            sb.AppendLine("--------------------------------------------------------------------------");
+            sb.AppendLine("PRODUCTO | CLASE | MARCA | PRECIO VENTA | STOCK | STOCK MÍN | ESTADO");
+            sb.AppendLine("--------------------------------------------------------------------------");
+            foreach (var p in productos.OrderBy(x => x.Nombre))
             {
-                string estado = p.Stock <= p.StockMinimo ? "Stock Bajo" : "OK";
-                sb.AppendLine($"{p.Nombre} | {p.Categoria} | Venta ${p.PrecioVenta:0.00} | Stock {p.Stock} | {estado}");
+                string estado = p.Stock <= p.StockMinimo ? "Bajo" : "OK";
+                string clase = string.IsNullOrEmpty(p.Clase) ? "N/A" : p.Clase;
+                string marca = string.IsNullOrEmpty(p.Marca) ? "N/A" : p.Marca;
+                sb.AppendLine($"{p.Nombre} | {clase} | {marca} | {sym}{p.PrecioVenta:0.00} | {p.Stock} | {p.StockMinimo} | {estado}");
             }
-            return sb.ToString();
-        }
-
-        private string CrearMovimientosCsv()
-        {
-            var movimientos = repoMovimiento.ObtenerTodos();
-            var sb = new StringBuilder();
-            sb.AppendLine("\"Fecha\",\"Tipo\",\"Producto\",\"Cantidad\",\"Stock Anterior\",\"Stock Nuevo\",\"Motivo\"");
-            foreach (var m in movimientos)
-                sb.AppendLine($"\"{m.Fecha:dd/MM/yyyy HH:mm}\",\"{EscapeCsv(m.Tipo)}\",\"{EscapeCsv(m.ProductoNombre)}\",{m.Cantidad},{m.StockAnterior},{m.StockNuevo},\"{EscapeCsv(CrearDetalleMovimiento(m))}\"");
-            return sb.ToString();
-        }
-
-        private string CrearMovimientosTxt()
-        {
-            var movimientos = repoMovimiento.ObtenerTodos();
-            var sb = new StringBuilder();
-            sb.AppendLine("REPORTE DE MOVIMIENTOS - STOCKPAP");
-            sb.AppendLine($"Generado: {DateTime.Now:dd/MM/yyyy HH:mm:ss}");
-            sb.AppendLine(new string('=', 60));
-            foreach (var m in movimientos)
-                sb.AppendLine($"{m.Fecha:dd/MM/yyyy HH:mm} | {m.Tipo} | {m.ProductoNombre} | Cantidad {m.Cantidad} | Stock {m.StockAnterior}->{m.StockNuevo} | {CrearDetalleMovimiento(m)}");
-            return sb.ToString();
-        }
-
-        private string CrearTicketGlobalTxt()
-        {
-            var sb = new StringBuilder();
-            sb.AppendLine("============================================================");
-            sb.AppendLine("                TICKET GLOBAL - STOCKPAP");
-            sb.AppendLine("============================================================");
-            sb.AppendLine($"Generado: {DateTime.Now:dd/MM/yyyy HH:mm:ss}");
             sb.AppendLine();
-            sb.AppendLine("--- RESUMEN DE INVENTARIO ---");
-            sb.Append(CrearInventarioTxt().Replace("REPORTE DE INVENTARIO - STOCKPAP\r\n", "").Replace($"Generado: {DateTime.Now:dd/MM/yyyy HH:mm:ss}\r\n", "").Replace(new string('=', 60) + "\r\n", ""));
             sb.AppendLine();
-            sb.AppendLine("--- HISTORIAL DE MOVIMIENTOS ---");
-            sb.Append(CrearMovimientosTxt().Replace("REPORTE DE MOVIMIENTOS - STOCKPAP\r\n", "").Replace($"Generado: {DateTime.Now:dd/MM/yyyy HH:mm:ss}\r\n", "").Replace(new string('=', 60) + "\r\n", ""));
-            sb.AppendLine("============================================================");
-            return sb.ToString();
-        }
+            sb.AppendLine("2. DETALLE DE MOVIMIENTOS");
+            sb.AppendLine("--------------------------------------------------------------------------");
+            sb.AppendLine("FECHA Y HORA | TIPO | PRODUCTO | CANTIDAD | STOCK ANT | STOCK NUEVO | MOTIVO");
+            sb.AppendLine("--------------------------------------------------------------------------");
+            foreach (var m in movimientos)
+            {
+                string signo = m.Tipo == "Entrada" ? "+" : "-";
+                sb.AppendLine($"{m.Fecha:dd/MM/yyyy HH:mm} | {m.Tipo} | {m.ProductoNombre} | {signo}{Math.Abs(m.Cantidad)} | {m.StockAnterior} | {m.StockNuevo} | {CrearDetalleMovimiento(m)}");
+            }
 
-        private static string EscapeCsv(string s)
-        {
-            return (s ?? "").Replace("\"", "\"\"");
+            Exportar.GuardarArchivoPdf("Reporte_Consolidado", sb.ToString());
         }
     }
 }

@@ -2,6 +2,7 @@ using System;
 using System.Drawing;
 using System.IO;
 using System.Windows.Forms;
+using System.Linq;
 using STOCKPAP.Models;
 using STOCKPAP.DataAccess;
 using STOCKPAP.Utilities;
@@ -10,20 +11,37 @@ namespace STOCKPAP.Views
 {
     public class ProductoForm : Form
     {
+        private Label lblTitle;
         private TextBox txtNombre;
         private TextBox txtCodigoBarras;
-        private ComboBox cmbCategoria;
-        private ComboBox cmbClasificacion;
-        private ComboBox cmbDetalle;
+        
+        // Removed unused Categoria, Clasificacion, Detalle variables
+
+        // Nuevos campos
+        private ComboBox cmbClase;
+        private ComboBox cmbSubclase;
+        private ComboBox cmbMarca;
+        private ComboBox cmbProveedor;
+
+        // Precios y Stock
         private NumericUpDown numPrecioCompra;
         private NumericUpDown numPrecioVenta;
         private NumericUpDown numStock;
-        private NumericUpDown numStockMinimo;
+        private NumericUpDown numCantidadAgregar;
         private PictureBox picPreview;
         private Label lblImagenEstado;
         private string selectedImagePath = "";
 
-        // Modo edición
+        // Botones
+        private Button btnNuevo;
+        private Button btnEditar;
+        private Button btnEliminar;
+        private Button btnGuardar;
+        private Button btnCancelar;
+
+        private ProductoRepository repo;
+        private ProveedorRepository repoProveedor;
+        private ClasificacionRepository repoClasificacion;
         private Producto _productoEditar;
         public bool EsEdicion => _productoEditar != null;
 
@@ -32,14 +50,26 @@ namespace STOCKPAP.Views
         public ProductoForm(Producto productoEditar)
         {
             _productoEditar = productoEditar;
+            repo = new ProductoRepository();
+            repoProveedor = new ProveedorRepository();
+            repoClasificacion = new ClasificacionRepository();
             InitializeComponent();
-            if (EsEdicion) CargarDatosEdicion();
+            CargarProveedores();
+            CargarListasAuxiliares();
+            if (EsEdicion)
+            {
+                CargarDatosEdicion();
+            }
+            else
+            {
+                LimpiarFormulario();
+            }
         }
 
         private void InitializeComponent()
         {
             this.Text = EsEdicion ? "Editar Producto" : "Nuevo Producto";
-            this.Size = new Size(540, 750);
+            this.Size = new Size(540, 780);
             this.MinimumSize = new Size(540, 500);
             this.StartPosition = FormStartPosition.CenterParent;
             this.FormBorderStyle = FormBorderStyle.Sizable;
@@ -53,7 +83,7 @@ namespace STOCKPAP.Views
                 Height = 55,
                 BackColor = Color.FromArgb(30, 96, 255)
             };
-            Label lblTitle = new Label
+            lblTitle = new Label
             {
                 Text = EsEdicion ? "✏  Editar Producto" : "➕  Nuevo Producto",
                 Font = new Font("Segoe UI", 14, FontStyle.Bold),
@@ -68,40 +98,87 @@ namespace STOCKPAP.Views
             Panel pnlBotones = new Panel
             {
                 Dock = DockStyle.Bottom,
-                Height = 60,
+                Height = 70, // Increased height for larger buttons
                 BackColor = Color.FromArgb(245, 247, 250),
-                Padding = new Padding(20, 10, 20, 10)
+                Padding = new Padding(15, 10, 15, 10)
             };
 
-            Button btnCancelar = new Button
+            btnNuevo = new Button
             {
-                Text = "Cancelar",
-                Size = new Size(100, 40),
-                Location = new Point(200, 10),
-                Font = new Font("Segoe UI", 10),
+                Text = "Nuevo",
+                Size = new Size(80, 40),
+                Location = new Point(15, 10),
+                Font = new Font("Segoe UI", 9, FontStyle.Bold),
                 FlatStyle = FlatStyle.Flat,
                 BackColor = Color.White,
-                Cursor = Cursors.Hand,
-                Anchor = AnchorStyles.Bottom | AnchorStyles.Right
+                ForeColor = Color.FromArgb(30, 96, 255),
+                Cursor = Cursors.Hand
             };
-            btnCancelar.Click += (s, ev) => { this.DialogResult = DialogResult.Cancel; this.Close(); };
+            btnNuevo.FlatAppearance.BorderColor = Color.FromArgb(30, 96, 255);
+            btnNuevo.Click += BtnNuevo_Click;
 
-            RoundedButton btnGuardar = new RoundedButton
+            btnEditar = new Button
             {
-                Text = EsEdicion ? "💾  Actualizar" : "💾  Guardar",
-                Size = new Size(160, 40),
-                Location = new Point(320, 10),
+                Text = "Editar",
+                Size = new Size(80, 40),
+                Location = new Point(105, 10),
+                Font = new Font("Segoe UI", 9, FontStyle.Bold),
+                FlatStyle = FlatStyle.Flat,
+                BackColor = Color.White,
+                ForeColor = Color.FromArgb(30, 96, 255),
+                Cursor = Cursors.Hand
+            };
+            btnEditar.FlatAppearance.BorderColor = Color.FromArgb(30, 96, 255);
+            btnEditar.Click += BtnEditar_Click;
+
+            btnEliminar = new Button
+            {
+                Text = "Eliminar",
+                Size = new Size(100, 45), // Larger size
+                Location = new Point(15, 12),
+                Font = new Font("Segoe UI", 9.5f, FontStyle.Bold),
+                FlatStyle = FlatStyle.Flat,
+                BackColor = Color.FromArgb(255, 240, 240),
+                ForeColor = Color.FromArgb(180, 30, 30),
+                Cursor = Cursors.Hand
+            };
+            btnEliminar.FlatAppearance.BorderColor = Color.FromArgb(255, 180, 180);
+            btnEliminar.Click += BtnEliminar_Click;
+            
+            btnNuevo.Visible = false;
+            btnEditar.Visible = false;
+            btnEliminar.Visible = false;
+
+            btnGuardar = new RoundedButton
+            {
+                Text = EsEdicion ? "Actualizar" : "Guardar",
+                Size = new Size(150, 45), // Larger size
+                Location = new Point(135, 12), // Centered slightly right to avoid Eliminar
                 BackColor = Color.FromArgb(30, 96, 255),
                 ForeColor = Color.White,
-                Font = new Font("Segoe UI", 10, FontStyle.Bold),
+                Font = new Font("Segoe UI", 11, FontStyle.Bold), // Larger font
                 BorderRadius = 8,
-                Cursor = Cursors.Hand,
-                Anchor = AnchorStyles.Bottom | AnchorStyles.Right
+                Cursor = Cursors.Hand
             };
             btnGuardar.Click += BtnGuardar_Click;
 
-            pnlBotones.Controls.Add(btnCancelar);
+            btnCancelar = new Button
+            {
+                Text = "Cancelar",
+                Size = new Size(150, 45), // Larger size
+                Location = new Point(300, 12), // Next to Guardar
+                Font = new Font("Segoe UI", 11), // Larger font
+                FlatStyle = FlatStyle.Flat,
+                BackColor = Color.White,
+                Cursor = Cursors.Hand
+            };
+            btnCancelar.Click += (s, ev) => { this.DialogResult = DialogResult.Cancel; this.Close(); };
+
+            pnlBotones.Controls.Add(btnNuevo);
+            pnlBotones.Controls.Add(btnEditar);
+            pnlBotones.Controls.Add(btnEliminar);
             pnlBotones.Controls.Add(btnGuardar);
+            pnlBotones.Controls.Add(btnCancelar);
             this.Controls.Add(pnlBotones);
 
             // ── Scrollable content panel ────────────────────────────────────
@@ -115,130 +192,70 @@ namespace STOCKPAP.Views
             this.Controls.Add(pnlScroll);
             pnlScroll.BringToFront();
 
-            // All fields go into this inner panel
             int contentWidth = 480;
             int y = 15;
 
             // Nombre
             AddLabel(pnlScroll, "Nombre del Producto:", 20, y);
             txtNombre = AddTextBox(pnlScroll, 20, y + 22, contentWidth - 20);
-            y += 65;
+            y += 75;
 
             // Código de barras
             AddLabel(pnlScroll, "Código de Barras (escribe o escanea):", 20, y);
             txtCodigoBarras = AddTextBox(pnlScroll, 20, y + 22, 310);
-            Button btnEscanearCodigo = new Button
-            {
-                Text = "📷 Escanear",
-                Location = new Point(345, y + 20),
-                Size = new Size(135, 32),
-                Font = new Font("Segoe UI", 9, FontStyle.Bold),
-                BackColor = Color.FromArgb(30, 96, 255),
-                ForeColor = Color.White,
-                FlatStyle = FlatStyle.Flat,
-                Cursor = Cursors.Hand
-            };
-            btnEscanearCodigo.FlatAppearance.BorderSize = 0;
-            btnEscanearCodigo.Click += BtnEscanearCodigo_Click;
-            pnlScroll.Controls.Add(btnEscanearCodigo);
-            y += 65;
-
-            // Categoría
-            AddLabel(pnlScroll, "Categoría:", 20, y);
-            cmbCategoria = new ComboBox
-            {
-                Location = new Point(20, y + 22),
-                Width = contentWidth - 65,
-                Font = new Font("Segoe UI", 11),
-                DropDownStyle = ComboBoxStyle.DropDown
-            };
-            cmbCategoria.Items.AddRange(ProductCategories.Merge(new ProductoRepository().ObtenerCategorias()));
-            cmbCategoria.SelectedIndex = 0;
-            cmbCategoria.SelectedIndexChanged += (s, e) => ActualizarClasificaciones();
-            cmbCategoria.TextChanged += (s, e) => ActualizarClasificaciones();
-            pnlScroll.Controls.Add(cmbCategoria);
-
-            Button btnAddCategoria = CreatePlusButton(contentWidth - 35, y + 21);
-            btnAddCategoria.Click += (s, e) =>
-            {
-                string nueva = PromptDialog.Mostrar("Nueva Categoría", "Ingresa el nombre de la nueva categoría:");
-                if (!string.IsNullOrWhiteSpace(nueva) && !cmbCategoria.Items.Contains(nueva))
-                {
-                    cmbCategoria.Items.Add(nueva);
-                    cmbCategoria.SelectedItem = nueva;
+            txtCodigoBarras.KeyDown += (s, e) => {
+                if (e.KeyCode == Keys.Enter) {
+                    e.SuppressKeyPress = true;
+                    CheckBarcode();
                 }
             };
-            pnlScroll.Controls.Add(btnAddCategoria);
-            y += 65;
+            txtCodigoBarras.Leave += (s, e) => CheckBarcode();
+            y += 75;
 
-            // Clasificación
-            AddLabel(pnlScroll, "Clasificación:", 20, y);
-            cmbClasificacion = new ComboBox
-            {
-                Location = new Point(20, y + 22),
-                Width = contentWidth - 65,
-                Font = new Font("Segoe UI", 11),
-                DropDownStyle = ComboBoxStyle.DropDown
-            };
-            cmbClasificacion.SelectedIndexChanged += (s, e) => ActualizarDetalles();
-            cmbClasificacion.TextChanged += (s, e) => ActualizarDetalles();
-            pnlScroll.Controls.Add(cmbClasificacion);
+            // ── Nuevos Filtros organizacionales (Clase, Subclase, Marca, Tipo) ──
+            AddLabel(pnlScroll, "Clase de Producto:", 20, y);
+            cmbClase = AddComboBox(pnlScroll, 20, y + 22, contentWidth - 20);
+            cmbClase.DropDownStyle = ComboBoxStyle.DropDownList;
+            cmbClase.SelectedIndexChanged += CmbClase_SelectedIndexChanged;
+            y += 75;
 
-            Button btnAddClasificacion = CreatePlusButton(contentWidth - 35, y + 21);
-            btnAddClasificacion.Click += (s, e) =>
-            {
-                string nueva = PromptDialog.Mostrar("Nueva Clasificación", "Ingresa el nombre de la nueva clasificación:");
-                if (!string.IsNullOrWhiteSpace(nueva) && !cmbClasificacion.Items.Contains(nueva))
-                {
-                    cmbClasificacion.Items.Add(nueva);
-                    cmbClasificacion.SelectedItem = nueva;
-                }
-            };
-            pnlScroll.Controls.Add(btnAddClasificacion);
-            y += 65;
+            AddLabel(pnlScroll, "Subclase:", 20, y);
+            cmbSubclase = AddComboBox(pnlScroll, 20, y + 22, contentWidth - 20);
+            cmbSubclase.DropDownStyle = ComboBoxStyle.DropDownList;
+            y += 75;
 
-            // Detalle / Tipo
-            AddLabel(pnlScroll, "Detalle / Tipo:", 20, y);
-            cmbDetalle = new ComboBox
-            {
-                Location = new Point(20, y + 22),
-                Width = contentWidth - 65,
-                Font = new Font("Segoe UI", 11),
-                DropDownStyle = ComboBoxStyle.DropDown
-            };
-            pnlScroll.Controls.Add(cmbDetalle);
+            AddLabel(pnlScroll, "Marca:", 20, y);
+            cmbMarca = AddComboBox(pnlScroll, 20, y + 22, contentWidth - 20);
+            cmbMarca.DropDownStyle = ComboBoxStyle.DropDownList;
+            y += 75;
 
-            Button btnAddDetalle = CreatePlusButton(contentWidth - 35, y + 21);
-            btnAddDetalle.Click += (s, e) =>
-            {
-                string nueva = PromptDialog.Mostrar("Nuevo Tipo", "Ingresa el nombre del nuevo tipo o detalle:");
-                if (!string.IsNullOrWhiteSpace(nueva) && !cmbDetalle.Items.Contains(nueva))
-                {
-                    cmbDetalle.Items.Add(nueva);
-                    cmbDetalle.SelectedItem = nueva;
-                }
-            };
-            pnlScroll.Controls.Add(btnAddDetalle);
-            y += 65;
+            // Precios y Costos
+            string moneda = ConfigHelper.Obtener("Moneda", "MXN");
+            string sym = moneda.Contains("USD") ? "USD$" : moneda.Contains("EUR") ? "€" : "$";
 
-            // Precios
-            AddLabel(pnlScroll, "Precio Compra ($):", 20, y);
-            AddLabel(pnlScroll, "Precio Venta ($):", 255, y);
+            AddLabel(pnlScroll, $"Precio de Compra ({sym}):", 20, y);
             numPrecioCompra = AddNumeric(pnlScroll, 20, y + 22, 210);
+            AddLabel(pnlScroll, $"Precio Venta ({sym}):", 255, y);
             numPrecioVenta = AddNumeric(pnlScroll, 255, y + 22, 210);
-            y += 65;
+            y += 75;
 
             // Stock
-            AddLabel(pnlScroll, "Stock Inicial:", 20, y);
-            AddLabel(pnlScroll, "Stock Mínimo:", 255, y);
+            AddLabel(pnlScroll, "Stock Actual:", 20, y);
+            AddLabel(pnlScroll, "Cantidad a Agregar:", 255, y);
             numStock = AddNumeric(pnlScroll, 20, y + 22, 210);
-            numStock.Maximum = 999999;
-            numStockMinimo = AddNumeric(pnlScroll, 255, y + 22, 210);
-            numStockMinimo.Maximum = 999999;
-            numStockMinimo.Value = 10;
-            y += 65;
+            numStock.Enabled = false; // Mostrar inventario actual
+            numCantidadAgregar = AddNumeric(pnlScroll, 255, y + 22, 210);
+            numCantidadAgregar.Value = 0;
+            y += 75;
 
-            // ── Imagen ──────────────────────────────────────────────────────
+            // Proveedor
+            AddLabel(pnlScroll, "Proveedor Asociado:", 20, y);
+            cmbProveedor = AddComboBox(pnlScroll, 20, y + 22, contentWidth - 20);
+            y += 75;
+
+            // Removed hidden compatibility fields
+
+            // Imagen
             AddLabel(pnlScroll, "Imagen del Producto:", 20, y);
             y += 22;
 
@@ -302,36 +319,11 @@ namespace STOCKPAP.Views
 
             y += 145;
 
-            // Add a spacer at the bottom to ensure scrolling works properly
-            Panel spacer = new Panel
-            {
-                Location = new Point(0, y),
-                Size = new Size(10, 10),
-                BackColor = Color.Transparent
-            };
+            // Spacer
+            Panel spacer = new Panel { Location = new Point(0, y), Size = new Size(10, 10), BackColor = Color.Transparent };
             pnlScroll.Controls.Add(spacer);
-
-            ActualizarClasificaciones();
         }
 
-        // ── Helper: Create "+" button ───────────────────────────────────────
-        private Button CreatePlusButton(int x, int y)
-        {
-            Button btn = new Button
-            {
-                Text = "+",
-                Location = new Point(x, y),
-                Size = new Size(35, 30),
-                BackColor = Color.FromArgb(245, 247, 250),
-                FlatStyle = FlatStyle.Flat,
-                Cursor = Cursors.Hand,
-                Font = new Font("Segoe UI", 12, FontStyle.Bold)
-            };
-            btn.FlatAppearance.BorderColor = Color.FromArgb(200, 200, 200);
-            return btn;
-        }
-
-        // ── Helpers de UI ───────────────────────────────────────────────────
         private void AddLabel(Panel container, string text, int x, int y)
         {
             container.Controls.Add(new Label
@@ -339,8 +331,8 @@ namespace STOCKPAP.Views
                 Text = text,
                 Font = new Font("Segoe UI", 9, FontStyle.Bold),
                 ForeColor = Color.FromArgb(60, 60, 60),
-                AutoSize = true,
-                Location = new Point(x, y)
+                Location = new Point(x, y),
+                AutoSize = true
             });
         }
 
@@ -357,6 +349,19 @@ namespace STOCKPAP.Views
             return tb;
         }
 
+        private ComboBox AddComboBox(Panel container, int x, int y, int width)
+        {
+            var cb = new ComboBox
+            {
+                Location = new Point(x, y),
+                Width = width,
+                Font = new Font("Segoe UI", 11),
+                DropDownStyle = ComboBoxStyle.DropDown
+            };
+            container.Controls.Add(cb);
+            return cb;
+        }
+
         private NumericUpDown AddNumeric(Panel container, int x, int y, int width)
         {
             var n = new NumericUpDown
@@ -371,64 +376,131 @@ namespace STOCKPAP.Views
             return n;
         }
 
-        private void ActualizarClasificaciones()
+        private Button CreatePlusButton(Panel container, int x, int y)
         {
-            if (cmbClasificacion == null)
-                return;
-
-            string valorActual = cmbClasificacion.Text;
-            cmbClasificacion.Items.Clear();
-            cmbClasificacion.Items.AddRange(ProductCategories.MergeClassifications(cmbCategoria.Text, new ProductoRepository().ObtenerClasificaciones(cmbCategoria.Text)));
-
-            int idx = cmbClasificacion.Items.IndexOf(valorActual);
-            if (idx >= 0)
-                cmbClasificacion.SelectedIndex = idx;
-            else if (cmbClasificacion.Items.Count > 0 && string.IsNullOrWhiteSpace(valorActual))
-                cmbClasificacion.SelectedIndex = 0;
-            else
-                cmbClasificacion.Text = valorActual;
-
-            ActualizarDetalles();
+            Button btn = new Button
+            {
+                Text = "+",
+                Location = new Point(x, y),
+                Size = new Size(35, 30),
+                BackColor = Color.FromArgb(245, 247, 250),
+                FlatStyle = FlatStyle.Flat,
+                Cursor = Cursors.Hand,
+                Font = new Font("Segoe UI", 12, FontStyle.Bold)
+            };
+            btn.FlatAppearance.BorderColor = Color.FromArgb(200, 200, 200);
+            container.Controls.Add(btn);
+            return btn;
         }
 
-        private void ActualizarDetalles()
+        private void CmbClase_SelectedIndexChanged(object sender, EventArgs e)
         {
-            if (cmbDetalle == null)
-                return;
+            cmbSubclase.Items.Clear();
+            cmbMarca.Items.Clear();
+            if (cmbClase.SelectedItem is Clase clase)
+            {
+                var subclases = repoClasificacion.ObtenerSubclases(clase.Id);
+                foreach (var s in subclases) cmbSubclase.Items.Add(s);
 
-            string valorActual = cmbDetalle.Text;
-            cmbDetalle.Items.Clear();
-            cmbDetalle.Items.AddRange(ProductCategories.MergeDetails(cmbCategoria.Text, cmbClasificacion.Text, new ProductoRepository().ObtenerDetalles(cmbCategoria.Text, cmbClasificacion.Text)));
-
-            int idx = cmbDetalle.Items.IndexOf(valorActual);
-            if (idx >= 0)
-                cmbDetalle.SelectedIndex = idx;
-            else if (cmbDetalle.Items.Count > 0 && string.IsNullOrWhiteSpace(valorActual))
-                cmbDetalle.SelectedIndex = 0;
-            else
-                cmbDetalle.Text = valorActual;
+                var marcas = repoClasificacion.ObtenerMarcas(clase.Id);
+                foreach (var m in marcas) cmbMarca.Items.Add(m);
+            }
         }
 
-        // ── Carga de datos al editar ─────────────────────────────────────────
+        private bool isScanningExisting = false;
+        private void CheckBarcode()
+        {
+            string code = txtCodigoBarras.Text.Trim();
+            if (string.IsNullOrEmpty(code)) return;
+            var prod = repo.BuscarPorCodigoBarras(code);
+            if (prod != null && (_productoEditar == null || _productoEditar.Id != prod.Id))
+            {
+                _productoEditar = prod;
+                isScanningExisting = true;
+                CargarDatosEdicion();
+            }
+        }
+
+        private void CargarProveedores()
+        {
+            cmbProveedor.Items.Clear();
+            var provs = repoProveedor.ObtenerTodos();
+            foreach (var prov in provs)
+            {
+                cmbProveedor.Items.Add(new ProveedorItem { Id = prov.Id, Empresa = prov.Empresa });
+            }
+        }
+
+        private void CargarListasAuxiliares()
+        {
+            cmbClase.Items.Clear();
+            var clases = repoClasificacion.ObtenerClases();
+            foreach (var c in clases) cmbClase.Items.Add(c);
+        }
+
         private void CargarDatosEdicion()
         {
+            btnEliminar.Enabled = true;
+            btnEliminar.Visible = true;
+            btnGuardar.Text = "Actualizar";
+            lblTitle.Text = "✏  Editar Producto";
+            this.Text = "Editar Producto";
+
             txtNombre.Text = _productoEditar.Nombre;
             txtCodigoBarras.Text = _productoEditar.CodigoBarras;
-            int idx = cmbCategoria.Items.IndexOf(_productoEditar.Categoria);
-            if (idx >= 0) cmbCategoria.SelectedIndex = idx;
-            else cmbCategoria.Text = _productoEditar.Categoria;
-            ActualizarClasificaciones();
-            int idxClasificacion = cmbClasificacion.Items.IndexOf(_productoEditar.Clasificacion);
-            if (idxClasificacion >= 0) cmbClasificacion.SelectedIndex = idxClasificacion;
-            else cmbClasificacion.Text = _productoEditar.Clasificacion;
-            ActualizarDetalles();
-            int idxDetalle = cmbDetalle.Items.IndexOf(_productoEditar.Detalle);
-            if (idxDetalle >= 0) cmbDetalle.SelectedIndex = idxDetalle;
-            else cmbDetalle.Text = _productoEditar.Detalle;
+
+            for (int i = 0; i < cmbClase.Items.Count; i++)
+            {
+                if (cmbClase.Items[i].ToString() == _productoEditar.Clase)
+                {
+                    cmbClase.SelectedIndex = i;
+                    break;
+                }
+            }
+
+            for (int i = 0; i < cmbSubclase.Items.Count; i++)
+            {
+                if (cmbSubclase.Items[i].ToString() == _productoEditar.Subclase)
+                {
+                    cmbSubclase.SelectedIndex = i;
+                    break;
+                }
+            }
+
+            for (int i = 0; i < cmbMarca.Items.Count; i++)
+            {
+                if (cmbMarca.Items[i].ToString() == _productoEditar.Marca)
+                {
+                    cmbMarca.SelectedIndex = i;
+                    break;
+                }
+            }
+            
             numPrecioCompra.Value = _productoEditar.PrecioCompra;
-            numPrecioVenta.Value  = _productoEditar.PrecioVenta;
-            numStock.Value        = _productoEditar.Stock;
-            numStockMinimo.Value  = _productoEditar.StockMinimo;
+            numPrecioVenta.Value = _productoEditar.PrecioVenta;
+            numStock.Value = _productoEditar.Stock;
+            if (isScanningExisting) {
+                numCantidadAgregar.Value = 1;
+            } else {
+                numCantidadAgregar.Value = 0;
+            }
+
+            // Seleccionar Proveedor
+            if (_productoEditar.ProveedorId.HasValue)
+            {
+                foreach (object item in cmbProveedor.Items)
+                {
+                    if (item is ProveedorItem p && p.Id == _productoEditar.ProveedorId.Value)
+                    {
+                        cmbProveedor.SelectedItem = p;
+                        break;
+                    }
+                }
+            }
+            else
+            {
+                cmbProveedor.SelectedIndex = -1;
+            }
 
             if (!string.IsNullOrEmpty(_productoEditar.ImagePath))
             {
@@ -437,12 +509,77 @@ namespace STOCKPAP.Views
                 {
                     picPreview.Image = Image.FromFile(path);
                     lblImagenEstado.Text = _productoEditar.ImagePath;
-                    selectedImagePath = "__keep__"; // señal de que no se reemplaza
+                    selectedImagePath = "__keep__";
                 }
             }
         }
 
-        // ── Eventos ─────────────────────────────────────────────────────────
+        private void LimpiarFormulario()
+        {
+            btnEliminar.Enabled = false;
+            btnGuardar.Text = "Guardar";
+            lblTitle.Text = "➕  Nuevo Producto";
+            this.Text = "Nuevo Producto";
+
+            txtNombre.Text = "";
+            txtCodigoBarras.Text = "";
+
+            cmbClase.Text = "General";
+            cmbSubclase.Text = "General";
+            cmbMarca.Text = "General";
+
+            numPrecioCompra.Value = 0;
+            numPrecioVenta.Value = 0;
+            numStock.Value = 0;
+            if (numCantidadAgregar != null) numCantidadAgregar.Value = 0;
+            cmbProveedor.SelectedIndex = -1;
+
+            picPreview.Image = null;
+            lblImagenEstado.Text = "Sin imagen seleccionada";
+            lblImagenEstado.ForeColor = Color.Gray;
+            selectedImagePath = "";
+        }
+
+        private void BtnNuevo_Click(object sender, EventArgs e)
+        {
+            _productoEditar = null;
+            LimpiarFormulario();
+            txtNombre.Focus();
+        }
+
+        private void BtnEditar_Click(object sender, EventArgs e)
+        {
+            // La edición siempre está habilitada, pero por seguridad, podemos re-confirmar el estado o enfocar el Nombre.
+            txtNombre.Focus();
+        }
+
+        private void BtnEliminar_Click(object sender, EventArgs e)
+        {
+            if (_productoEditar == null) return;
+
+            var res = MessageBox.Show(
+                $"¿Seguro que deseas eliminar el producto:\n\n\"{_productoEditar.Nombre}\"?\n\nEsta acción no se puede deshacer.",
+                "Confirmar eliminación",
+                MessageBoxButtons.YesNo,
+                MessageBoxIcon.Warning);
+
+            if (res == DialogResult.Yes)
+            {
+                if (repo.EliminarProducto(_productoEditar.Id))
+                {
+                    MessageBox.Show("Producto eliminado correctamente.", "Éxito", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    this.DialogResult = DialogResult.OK;
+                    this.Close();
+                }
+                else
+                {
+                    MessageBox.Show("No se pudo eliminar el producto.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                }
+            }
+        }
+
+
+
         private void BtnImagen_Click(object sender, EventArgs e)
         {
             using (OpenFileDialog ofd = new OpenFileDialog())
@@ -459,28 +596,17 @@ namespace STOCKPAP.Views
             }
         }
 
-        private void BtnEscanearCodigo_Click(object sender, EventArgs e)
-        {
-            using (var scanner = new BarcodeScannerForm())
-            {
-                if (scanner.ShowDialog(this) == DialogResult.OK)
-                    txtCodigoBarras.Text = scanner.CodigoDetectado;
-            }
-        }
-
-        private void BtnGuardar_Click(object sender, EventArgs e)
+        private void BtnSaveLogic()
         {
             if (string.IsNullOrWhiteSpace(txtNombre.Text))
             {
-                MessageBox.Show("El nombre del producto es requerido.", "Campo requerido",
-                    MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                MessageBox.Show("El nombre del producto es requerido.", "Campo requerido", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 txtNombre.Focus();
                 return;
             }
 
             string imageName = EsEdicion ? (_productoEditar.ImagePath ?? "") : "";
 
-            // Si se seleccionó una nueva imagen (y no es la señal __keep__)
             if (!string.IsNullOrEmpty(selectedImagePath) && selectedImagePath != "__keep__" && File.Exists(selectedImagePath))
             {
                 try
@@ -499,27 +625,39 @@ namespace STOCKPAP.Views
                 }
             }
 
+            int? provId = null;
+            if (cmbProveedor.SelectedItem is ProveedorItem pItem)
+            {
+                provId = pItem.Id;
+            }
+
+            string clase = string.IsNullOrWhiteSpace(cmbClase.Text) ? "General" : cmbClase.Text.Trim();
+            string subclase = string.IsNullOrWhiteSpace(cmbSubclase.Text) ? "General" : cmbSubclase.Text.Trim();
+            int newStock = (int)(numStock.Value + numCantidadAgregar.Value);
+
             Producto p = new Producto
             {
-                Id           = EsEdicion ? _productoEditar.Id : 0,
-                Nombre       = txtNombre.Text.Trim(),
-                Categoria    = string.IsNullOrWhiteSpace(cmbCategoria.Text) ? "Otros" : cmbCategoria.Text.Trim(),
-                Clasificacion = string.IsNullOrWhiteSpace(cmbClasificacion.Text) ? "General" : cmbClasificacion.Text.Trim(),
-                Detalle      = string.IsNullOrWhiteSpace(cmbDetalle.Text) ? "General" : cmbDetalle.Text.Trim(),
+                Id = EsEdicion ? _productoEditar.Id : 0,
+                Nombre = txtNombre.Text.Trim(),
+
                 CodigoBarras = txtCodigoBarras.Text.Trim(),
                 PrecioCompra = numPrecioCompra.Value,
-                PrecioVenta  = numPrecioVenta.Value,
-                Stock        = (int)numStock.Value,
-                StockMinimo  = (int)numStockMinimo.Value,
-                ImagePath    = imageName
+                PrecioVenta = numPrecioVenta.Value,
+                Stock = newStock,
+                ImagePath = imageName,
+
+                Clase = clase,
+                Subclase = subclase,
+                Marca = string.IsNullOrWhiteSpace(cmbMarca.Text) ? "General" : cmbMarca.Text.Trim(),
+                ProveedorId = provId,
+                StockMinimo = int.Parse(ConfigHelper.Obtener("StockMinimoGlobal", "10"))
             };
 
-            ProductoRepository repo = new ProductoRepository();
             bool ok = EsEdicion ? repo.ActualizarProducto(p) : repo.AgregarProducto(p);
 
             if (ok)
             {
-                string msg = EsEdicion ? "Producto actualizado correctamente." : "Producto agregado con éxito.";
+                string msg = EsEdicion ? "Producto actualizado correctamente." : "Producto guardado con éxito.";
                 MessageBox.Show(msg, "Éxito", MessageBoxButtons.OK, MessageBoxIcon.Information);
                 this.DialogResult = DialogResult.OK;
                 this.Close();
@@ -527,6 +665,23 @@ namespace STOCKPAP.Views
             else
             {
                 MessageBox.Show("Error al guardar en la base de datos.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+
+        private void BtnGuardar_Click(object sender, EventArgs e)
+        {
+            BtnSaveLogic();
+        }
+
+        // Estructura auxiliar para guardar proveedores en ComboBox
+        private class ProveedorItem
+        {
+            public int Id { get; set; }
+            public string Empresa { get; set; }
+
+            public override string ToString()
+            {
+                return Empresa;
             }
         }
     }

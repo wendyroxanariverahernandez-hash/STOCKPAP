@@ -1,5 +1,6 @@
 using System;
 using System.Drawing;
+using System.Linq;
 using System.Windows.Forms;
 using STOCKPAP.Models;
 using STOCKPAP.Utilities;
@@ -11,19 +12,34 @@ namespace STOCKPAP.Views
         private Panel sidebarPanel;
         private Panel contentPanel;
         private Usuario currentUser;
-        private bool isSidebarExpanded = true;
         private Label lblLogo;
         private Label lblSubLogo;
         private Label lblUser;
         private Label lblDate;
         private Button btnToggle;
         private Button btnLogout;
+        private bool isSidebarExpanded = true;
+        private string currentMenuName = "";
+        private Button currentMenuBtn = null;
 
         public MainForm(Usuario user)
         {
             currentUser = user;
             InitializeComponent();
+            
+            ThemeManager.AplicarTema(this, ConfigHelper.Obtener("TemaVisual", "Modo Claro"));
+            ConfigHelper.ConfiguracionesActualizadas += OnConfiguracionesActualizadas;
+            
             LoadView(new VentasView(currentUser)); // Default view
+        }
+
+        private void OnConfiguracionesActualizadas()
+        {
+            ThemeManager.AplicarTema(this, ConfigHelper.Obtener("TemaVisual", "Modo Claro"));
+            if (currentMenuBtn != null)
+            {
+                MenuClick(currentMenuName, currentMenuBtn);
+            }
         }
 
         private void InitializeComponent()
@@ -91,13 +107,16 @@ namespace STOCKPAP.Views
 
             // Menu Buttons
             int startY = 120;
-            string[] menus = { "Ventas", "Inventario", "Proveedores", "Reportes" };
+            string[] menus = { "Ventas", "Inventario", "Proveedores", "Clasificaciones", "Reportes", "Configuracion" };
             foreach (var menu in menus)
             {
+                if (!EsAdmin() && (menu == "Inventario" || menu == "Proveedores" || menu == "Clasificaciones" || menu == "Configuracion"))
+                    continue;
+
                 Button btn = new Button
                 {
                     Name = "btn" + menu,
-                    Text = "   " + menu, // Keep text but we will hide it when collapsed
+                    Text = "   " + (menu == "Configuracion" ? "Configuración" : menu),
                     Font = new Font("Segoe UI", 12),
                     FlatStyle = FlatStyle.Flat,
                     TextAlign = ContentAlignment.MiddleLeft,
@@ -137,7 +156,7 @@ namespace STOCKPAP.Views
             
             btnLogout = new Button
             {
-                Text = "Cerrar Sesion",
+                Text = "Cerrar Sesión",
                 Font = new Font("Segoe UI", 10, FontStyle.Bold),
                 FlatStyle = FlatStyle.Flat,
                 Size = new Size(210, 35),
@@ -178,7 +197,8 @@ namespace STOCKPAP.Views
                 {
                     if (isSidebarExpanded)
                     {
-                        b.Text = "   " + b.Name.Substring(3); // Restore name
+                        string rawName = b.Name.Substring(3);
+                        b.Text = "   " + (rawName == "Configuracion" ? "Configuración" : rawName);
                         b.Width = 230;
                     }
                     else
@@ -197,10 +217,14 @@ namespace STOCKPAP.Views
             {
                 if (c is Button b && b.Name.StartsWith("btn"))
                 {
-                    b.BackColor = Color.Transparent;
-                    b.ForeColor = Color.Black;
+                    bool isDark = ConfigHelper.Obtener("TemaVisual", "Modo Claro") == "Modo Oscuro";
+                    b.BackColor = isDark ? Color.FromArgb(45, 45, 48) : Color.Transparent;
+                    b.ForeColor = isDark ? Color.White : Color.Black;
                 }
             }
+
+            currentMenuName = menuName;
+            currentMenuBtn = clickedBtn;
 
             // Active style
             clickedBtn.BackColor = Color.FromArgb(230, 240, 255);
@@ -213,7 +237,9 @@ namespace STOCKPAP.Views
                 case "Ventas": view = new VentasView(currentUser); break;
                 case "Inventario": view = new InventarioView(EsAdmin()); break;
                 case "Proveedores": view = new ProveedoresView(EsAdmin()); break;
-                case "Reportes": view = new ReportesView(EsAdmin()); break;
+                case "Clasificaciones": view = new ClasificacionesView(); break;
+                case "Reportes": view = new ReportesView(currentUser); break;
+                case "Configuracion": view = new ConfiguracionView(EsAdmin()); break;
             }
 
             if (view != null) LoadView(view);
@@ -223,7 +249,16 @@ namespace STOCKPAP.Views
         {
             contentPanel.Controls.Clear();
             view.Dock = DockStyle.Fill;
+            ThemeManager.AplicarTema(view, ConfigHelper.Obtener("TemaVisual", "Modo Claro"));
             contentPanel.Controls.Add(view);
+        }
+
+        public void RefreshUsuarioInfo()
+        {
+            if (currentUser != null && lblUser != null)
+            {
+                lblUser.Text = $"Usuario: {currentUser.Username} ({currentUser.Rol})";
+            }
         }
 
         private bool EsAdmin()

@@ -11,6 +11,9 @@ namespace STOCKPAP.Utilities
         public Color BorderColor { get; set; } = Color.Transparent;
         public int BorderSize { get; set; } = 0;
 
+        private Color originalColor;
+        private bool isHovering = false;
+
         public RoundedButton()
         {
             this.FlatStyle = FlatStyle.Flat;
@@ -25,6 +28,27 @@ namespace STOCKPAP.Utilities
         {
             if (BorderRadius > this.Height)
                 BorderRadius = this.Height;
+        }
+
+        protected override void OnMouseEnter(EventArgs e)
+        {
+            base.OnMouseEnter(e);
+            if (!isHovering && this.BackColor != Color.Transparent)
+            {
+                isHovering = true;
+                originalColor = this.BackColor;
+                this.BackColor = ControlPaint.Light(originalColor, 0.2f);
+            }
+        }
+
+        protected override void OnMouseLeave(EventArgs e)
+        {
+            base.OnMouseLeave(e);
+            if (isHovering)
+            {
+                this.BackColor = originalColor;
+                isHovering = false;
+            }
         }
 
         protected override void OnPaint(PaintEventArgs pevent)

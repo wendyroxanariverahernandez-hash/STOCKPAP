@@ -9,16 +9,7 @@ let db = {
         { id: 1, username: 'administrador', password: 'wendy123', rol: 'Admin' },
         { id: 2, username: 'cajero', password: 'cajero123', rol: 'Cajero' }
     ],
-    productos: [
-        { id: 1, nombre: 'Cuaderno Profesional 100 hojas', categoria: 'Cuadernos', precioCompra: 15.00, precioVenta: 35.00, stock: 150, stockMinimo: 20, imagePath: 'cuaderno.png' },
-        { id: 2, nombre: 'Pluma BIC Cristal Azul', categoria: 'Escritura', precioCompra: 2.50, precioVenta: 45.00, stock: 80, stockMinimo: 10, imagePath: 'pluma_bic.png' },
-        { id: 3, nombre: 'Lápiz Mirado No. 2', categoria: 'Escritura', precioCompra: 2.00, precioVenta: 25.00, stock: 120, stockMinimo: 20, imagePath: 'lapiz.png' },
-        { id: 4, nombre: 'Resma Papel Bond A4', categoria: 'Papel', precioCompra: 80.00, precioVenta: 120.00, stock: 45, stockMinimo: 10, imagePath: 'resma.png' },
-        { id: 5, nombre: 'Marcadores de Colores', categoria: 'Marcadores', precioCompra: 40.00, precioVenta: 65.00, stock: 8, stockMinimo: 15, imagePath: 'marcadores.png' }, // Stock Bajo (8 <= 15)
-        { id: 6, nombre: 'Carpeta Tamaño Carta', categoria: 'Organización', precioCompra: 25.00, precioVenta: 55.00, stock: 60, stockMinimo: 15, imagePath: 'carpeta.png' },
-        { id: 7, nombre: 'Pegamento en Barra', categoria: 'Adhesivos', precioCompra: 8.00, precioVenta: 18.00, stock: 100, stockMinimo: 30, imagePath: 'pegamento.png' },
-        { id: 8, nombre: 'Tijeras Escolares', categoria: 'Corte', precioCompra: 12.00, precioVenta: 28.00, stock: 5, stockMinimo: 10, imagePath: 'tijeras.png' } // Stock Bajo (5 <= 10)
-    ],
+    productos: [],
     proveedores: [
         { id: 1, empresa: 'Distribuidora Escolar del Centro', contacto: 'Juan Pérez', telefono: '555-1234-5678', email: 'ventas@descolar.com', direccion: 'Av. Juárez 123, CDMX' },
         { id: 2, empresa: 'Papelería y Más SA de CV', contacto: 'María García', telefono: '555-8765-4321', email: 'contacto@papeleriaymas.com', direccion: 'Calle Insurgentes 456, CDMX' }

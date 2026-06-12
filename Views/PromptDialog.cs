@@ -10,7 +10,7 @@ namespace STOCKPAP.Views
         private TextBox txtInput;
         public string ValorIngresado { get; private set; }
 
-        public PromptDialog(string titulo, string mensaje)
+        public PromptDialog(string titulo, string mensaje, string valorPorDefecto = "")
         {
             this.Text = titulo;
             this.Size = new Size(350, 180);
@@ -33,7 +33,8 @@ namespace STOCKPAP.Views
             {
                 Location = new Point(20, 50),
                 Width = 290,
-                Font = new Font("Segoe UI", 11)
+                Font = new Font("Segoe UI", 11),
+                Text = valorPorDefecto
             };
             this.Controls.Add(txtInput);
 
@@ -79,9 +80,9 @@ namespace STOCKPAP.Views
             this.Close();
         }
 
-        public static string Mostrar(string titulo, string mensaje)
+        public static string Mostrar(string titulo, string mensaje, string valorPorDefecto = "")
         {
-            using (var prompt = new PromptDialog(titulo, mensaje))
+            using (var prompt = new PromptDialog(titulo, mensaje, valorPorDefecto))
             {
                 if (prompt.ShowDialog() == DialogResult.OK)
                     return prompt.ValorIngresado;

@@ -7,12 +7,18 @@ namespace STOCKPAP.DataAccess
 {
     public class ProductoRepository
     {
-        private const string SelectProductos = "SELECT Id, Nombre, Categoria, Clasificacion, Detalle, CodigoBarras, PrecioCompra, PrecioVenta, Stock, StockMinimo, ImagePath FROM Productos";
+        private const string SelectProductos = @"SELECT p.Id, p.Nombre, p.CodigoBarras, 
+            p.PrecioCompra, p.PrecioVenta, p.Stock, p.StockMinimo, p.ImagePath, 
+            p.Clase, p.Subclase, p.Marca,
+            pp.ProveedorId, prov.Contacto AS ProveedorNombre
+            FROM Productos p
+            LEFT JOIN Proveedor_Producto pp ON pp.ProductoId = p.Id
+            LEFT JOIN Proveedores prov ON prov.Id = pp.ProveedorId";
 
         public ProductoRepository()
         {
             AsegurarCamposProducto();
-            SembrarProductosProfesionales();
+            // SembrarProductosProfesionales();
         }
 
         private void AsegurarCamposProducto()
@@ -22,9 +28,48 @@ namespace STOCKPAP.DataAccess
                 conn.Open();
                 using (var cmd = new NpgsqlCommand(
                     "ALTER TABLE Productos ADD COLUMN IF NOT EXISTS CodigoBarras VARCHAR(80);" +
-                    "ALTER TABLE Productos ADD COLUMN IF NOT EXISTS Clasificacion VARCHAR(120);" +
-                    "ALTER TABLE Productos ADD COLUMN IF NOT EXISTS Detalle VARCHAR(120);" +
-                    "CREATE UNIQUE INDEX IF NOT EXISTS ux_productos_codigobarras ON Productos (CodigoBarras) WHERE CodigoBarras IS NOT NULL AND CodigoBarras <> '';",
+                    "ALTER TABLE Productos ADD COLUMN IF NOT EXISTS Clase VARCHAR(120);" +
+                    "ALTER TABLE Productos ADD COLUMN IF NOT EXISTS Subclase VARCHAR(120);" +
+                    "ALTER TABLE Productos ADD COLUMN IF NOT EXISTS Marca VARCHAR(120);" +
+                    "ALTER TABLE Productos DROP COLUMN IF EXISTS Categoria CASCADE;" +
+                    "ALTER TABLE Productos DROP COLUMN IF EXISTS Clasificacion CASCADE;" +
+                    "ALTER TABLE Productos DROP COLUMN IF EXISTS Detalle CASCADE;" +
+                    "ALTER TABLE Productos DROP COLUMN IF EXISTS Tipo CASCADE;" +
+                    "CREATE UNIQUE INDEX IF NOT EXISTS ux_productos_codigobarras ON Productos (CodigoBarras) WHERE CodigoBarras IS NOT NULL AND CodigoBarras <> '';" +
+                    "CREATE TABLE IF NOT EXISTS AlertasStock (" +
+                    "    Id SERIAL PRIMARY KEY," +
+                    "    ProductoId INTEGER REFERENCES Productos(Id) ON DELETE CASCADE," +
+                    "    StockActual INTEGER NOT NULL," +
+                    "    StockMinimo INTEGER NOT NULL," +
+                    "    FechaGeneracion TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP," +
+                    "    Resuelta BOOLEAN NOT NULL DEFAULT FALSE," +
+                    "    FechaResolucion TIMESTAMP" +
+                    ");" +
+                    "CREATE TABLE IF NOT EXISTS Configuracion (" +
+                    "    Clave VARCHAR(100) PRIMARY KEY," +
+                    "    Valor VARCHAR(255) NOT NULL" +
+                    ");" +
+                    "CREATE TABLE IF NOT EXISTS Clases (" +
+                    "    Id SERIAL PRIMARY KEY," +
+                    "    Nombre VARCHAR(120) UNIQUE NOT NULL" +
+                    ");" +
+                    "CREATE TABLE IF NOT EXISTS Subclases (" +
+                    "    Id SERIAL PRIMARY KEY," +
+                    "    Nombre VARCHAR(120) NOT NULL," +
+                    "    ClaseId INTEGER REFERENCES Clases(Id) ON DELETE CASCADE," +
+                    "    UNIQUE (Nombre, ClaseId)" +
+                    ");" +
+                    "CREATE TABLE IF NOT EXISTS Marcas (" +
+                    "    Id SERIAL PRIMARY KEY," +
+                    "    Nombre VARCHAR(120) NOT NULL," +
+                    "    ClaseId INTEGER REFERENCES Clases(Id) ON DELETE CASCADE," +
+                    "    UNIQUE (Nombre, ClaseId)" +
+                    ");" +
+                    "INSERT INTO Configuracion (Clave, Valor) VALUES " +
+                    "('StockMinimoGlobal', '10'), " +
+                    "('AlertasActivas', 'true'), " +
+                    "('FormatoReporteDefecto', 'PDF') " +
+                    "ON CONFLICT (Clave) DO NOTHING;",
                     conn))
                 {
                     cmd.ExecuteNonQuery();
@@ -34,64 +79,7 @@ namespace STOCKPAP.DataAccess
 
         private void SembrarProductosProfesionales()
         {
-            using (var conn = Conexion.Instance.GetConnection())
-            {
-                conn.Open();
-                using (var cmd = new NpgsqlCommand(@"
-INSERT INTO Productos (Nombre, Categoria, Clasificacion, Detalle, CodigoBarras, PrecioCompra, PrecioVenta, Stock, StockMinimo, ImagePath) VALUES
-('Lapiz Mirado No. 2 HB', 'Escritura', 'Lapices', 'Numero 2', '7502000000018', 3.00, 6.00, 240, 30, 'lapiz.png'),
-('Lapiz grafito 2B profesional', 'Escritura', 'Lapices', '2B', '7502000000025', 5.00, 12.00, 120, 20, 'lapiz.png'),
-('Lapicero gel azul punta fina 0.5 mm', 'Escritura', 'Lapiceros', 'Punta fina', '7502000000032', 6.50, 15.00, 180, 25, 'pluma_bic.png'),
-('Lapicero tinta negra punta media 0.7 mm', 'Escritura', 'Lapiceros', 'Punta media', '7502000000049', 5.50, 13.00, 180, 25, 'pluma_bic.png'),
-('Lapicero rojo punta gruesa 1.0 mm', 'Escritura', 'Lapiceros', 'Punta gruesa', '7502000000056', 5.50, 13.00, 100, 20, 'pluma_bic.png'),
-('Crayones jumbo lavables 12 colores', 'Escritura', 'Crayones', 'Jumbo', '7502000000063', 28.00, 55.00, 70, 12, ''),
-('Colores de madera 24 piezas', 'Escritura', 'Colores', 'Madera 24 piezas', '7502000000070', 48.00, 89.00, 80, 12, ''),
-('Marcador permanente negro punta media', 'Escritura', 'Marcadores', 'Permanentes', '7502000000087', 12.00, 24.00, 90, 15, 'marcadores.png'),
-('Marcadores para pizarron set 4 colores', 'Escritura', 'Marcadores', 'Para pizarron', '7502000000094', 45.00, 89.00, 45, 10, 'marcadores.png'),
-('Resaltador pastel set 6 piezas', 'Escritura', 'Resaltadores', 'Pastel', '7502000000100', 42.00, 85.00, 60, 10, ''),
-('Corrector en cinta 5 mm x 8 m', 'Escritura', 'Correctores', 'Cinta', '7502000000117', 14.00, 29.00, 85, 15, ''),
-('Resma papel bond carta 500 hojas', 'Papel', 'Hojas', 'Carta', '7502000000124', 82.00, 129.00, 55, 10, 'resma.png'),
-('Resma papel bond oficio 500 hojas', 'Papel', 'Hojas', 'Oficio', '7502000000131', 96.00, 149.00, 45, 10, 'resma.png'),
-('Cuaderno profesional cuadro chico 100 hojas', 'Papel', 'Cuadernos', 'Cuadro chico', '7502000000148', 18.00, 39.00, 160, 25, 'cuaderno.png'),
-('Cuaderno profesional raya 100 hojas', 'Papel', 'Cuadernos', 'Raya', '7502000000155', 18.00, 39.00, 160, 25, 'cuaderno.png'),
-('Libreta taquigrafia 80 hojas', 'Papel', 'Libretas', 'Taquigrafia', '7502000000162', 12.00, 26.00, 110, 20, ''),
-('Cartulina blanca escolar', 'Papel', 'Cartulinas', 'Blanca', '7502000000179', 3.50, 8.00, 200, 40, ''),
-('Papel crepe color surtido', 'Papel', 'Papeles especiales', 'Crepe', '7502000000186', 5.00, 12.00, 150, 25, ''),
-('Block marquilla 20 hojas', 'Papel', 'Blocks', 'Marquilla', '7502000000193', 28.00, 55.00, 50, 10, ''),
-('Pegamento en barra 22 g', 'Adhesivos', 'Pegamentos', 'Barra', '7502000000209', 8.00, 18.00, 120, 25, 'pegamento.png'),
-('Silicon frio escolar 100 ml', 'Adhesivos', 'Pegamentos', 'Silicon frio', '7502000000216', 14.00, 32.00, 65, 12, ''),
-('Cinta transparente 18 mm', 'Adhesivos', 'Cintas', 'Transparente', '7502000000223', 7.00, 16.00, 100, 20, ''),
-('Cinta masking tape 24 mm', 'Adhesivos', 'Cintas', 'Masking tape', '7502000000230', 16.00, 34.00, 60, 12, ''),
-('Etiquetas blancas carta 100 hojas', 'Adhesivos', 'Etiquetas', 'Adhesivas carta', '7502000000247', 95.00, 169.00, 20, 5, ''),
-('Folder manila tamano carta paquete 100', 'Organizacion', 'Folders', 'Manila carta', '7502000000254', 95.00, 155.00, 35, 8, ''),
-('Carpeta argolla blanca 1 pulgada', 'Organizacion', 'Carpetas', 'Argolla 1 pulgada', '7502000000261', 28.00, 59.00, 55, 10, 'carpeta.png'),
-('Archivador acordeon 13 divisiones', 'Organizacion', 'Archivadores', 'Acordeon', '7502000000278', 85.00, 149.00, 30, 6, ''),
-('Agenda ejecutiva semanal', 'Organizacion', 'Agendas', 'Ejecutiva', '7502000000285', 78.00, 139.00, 25, 5, ''),
-('Grapadora metalica escritorio', 'Oficina', 'Grapado', 'Grapadora escritorio', '7502000000292', 65.00, 119.00, 30, 6, ''),
-('Caja grapas estandar 5000 piezas', 'Oficina', 'Grapado', 'Grapas estandar', '7502000000308', 18.00, 39.00, 80, 15, ''),
-('Binder clip mediano caja 12 piezas', 'Oficina', 'Clips y broches', 'Binder clip mediano', '7502000000315', 22.00, 45.00, 70, 12, ''),
-('Perforadora dos orificios', 'Oficina', 'Accesorios', 'Perforadora', '7502000000322', 52.00, 99.00, 35, 7, ''),
-('Pintura acrilica escolar 250 ml', 'Arte y dibujo', 'Pinturas', 'Acrilica', '7502000000339', 25.00, 52.00, 65, 12, ''),
-('Pinceles set escolar 6 piezas', 'Arte y dibujo', 'Pinceles', 'Set escolar', '7502000000346', 24.00, 49.00, 70, 12, ''),
-('Juego geometrico flexible 4 piezas', 'Corte y medicion', 'Geometria', 'Juego geometrico', '7502000000353', 18.00, 38.00, 90, 18, ''),
-('Tijeras escolares punta roma', 'Corte y medicion', 'Tijeras', 'Escolar punta roma', '7502000000360', 12.00, 28.00, 75, 12, 'tijeras.png'),
-('Cutter grande con seguro', 'Corte y medicion', 'Cutters', 'Grande', '7502000000377', 18.00, 39.00, 45, 8, ''),
-('Calculadora cientifica escolar', 'Tecnologia e impresion', 'Accesorios', 'Calculadora cientifica', '7502000000384', 145.00, 249.00, 18, 4, ''),
-('Memoria USB 32 GB', 'Tecnologia e impresion', 'Accesorios', 'USB', '7502000000391', 72.00, 129.00, 28, 6, ''),
-('Tinta Epson negra botella', 'Tecnologia e impresion', 'Tintas', 'Epson', '7502000000407', 135.00, 219.00, 22, 5, ''),
-('Sobre manila carta paquete 50', 'Empaque y regalos', 'Sobres', 'Manila', '7502000000414', 48.00, 89.00, 40, 8, ''),
-('Bolsa de regalo mediana', 'Empaque y regalos', 'Bolsas', 'Regalo mediana', '7502000000421', 7.00, 18.00, 120, 20, ''),
-('Papel regalo infantil', 'Empaque y regalos', 'Envolturas', 'Papel regalo', '7502000000438', 5.50, 15.00, 140, 25, ''),
-('Mochila escolar primaria reforzada', 'Escolar y mochilas', 'Mochilas', 'Primaria', '7502000000445', 190.00, 329.00, 16, 4, ''),
-('Lapicera escolar doble cierre', 'Escolar y mochilas', 'Mochilas', 'Lapicera', '7502000000452', 35.00, 75.00, 45, 8, ''),
-('Plastilina 12 colores', 'Escolar y mochilas', 'Didactico', 'Plastilina', '7502000000469', 22.00, 45.00, 80, 15, ''),
-('Gel antibacterial 250 ml', 'Limpieza y varios', 'Limpieza', 'Gel antibacterial', '7502000000476', 24.00, 49.00, 50, 10, ''),
-('Pilas alcalinas AA paquete 4', 'Limpieza y varios', 'Varios', 'Pilas AA', '7502000000483', 34.00, 69.00, 55, 10, '')
-ON CONFLICT (CodigoBarras) WHERE CodigoBarras IS NOT NULL AND CodigoBarras <> '' DO NOTHING;", conn))
-                {
-                    cmd.ExecuteNonQuery();
-                }
-            }
+            // Omitted since it contains old columns. We don't need it.
         }
 
         public List<Producto> ObtenerTodos()
@@ -100,7 +88,7 @@ ON CONFLICT (CodigoBarras) WHERE CodigoBarras IS NOT NULL AND CodigoBarras <> ''
             using (var conn = Conexion.Instance.GetConnection())
             {
                 conn.Open();
-                using (var cmd = new NpgsqlCommand(SelectProductos + " ORDER BY Nombre", conn))
+                using (var cmd = new NpgsqlCommand(SelectProductos + " ORDER BY p.Nombre", conn))
                 using (var reader = cmd.ExecuteReader())
                 {
                     while (reader.Read())
@@ -116,7 +104,7 @@ ON CONFLICT (CodigoBarras) WHERE CodigoBarras IS NOT NULL AND CodigoBarras <> ''
             using (var conn = Conexion.Instance.GetConnection())
             {
                 conn.Open();
-                using (var cmd = new NpgsqlCommand(SelectProductos + " WHERE Nombre ILIKE @t OR CodigoBarras ILIKE @t OR Categoria ILIKE @t OR Clasificacion ILIKE @t OR Detalle ILIKE @t ORDER BY Nombre", conn))
+                using (var cmd = new NpgsqlCommand(SelectProductos + " WHERE p.Nombre ILIKE @t OR p.CodigoBarras ILIKE @t OR p.Clase ILIKE @t OR p.Subclase ILIKE @t OR p.Marca ILIKE @t ORDER BY p.Nombre", conn))
                 {
                     cmd.Parameters.AddWithValue("t", $"%{texto}%");
                     using (var reader = cmd.ExecuteReader())
@@ -137,7 +125,7 @@ ON CONFLICT (CodigoBarras) WHERE CodigoBarras IS NOT NULL AND CodigoBarras <> ''
             using (var conn = Conexion.Instance.GetConnection())
             {
                 conn.Open();
-                using (var cmd = new NpgsqlCommand(SelectProductos + " WHERE CodigoBarras = @codigo LIMIT 1", conn))
+                using (var cmd = new NpgsqlCommand(SelectProductos + " WHERE p.CodigoBarras = @codigo LIMIT 1", conn))
                 {
                     cmd.Parameters.AddWithValue("codigo", codigo.Trim());
                     using (var reader = cmd.ExecuteReader())
@@ -148,82 +136,71 @@ ON CONFLICT (CodigoBarras) WHERE CodigoBarras IS NOT NULL AND CodigoBarras <> ''
             }
         }
 
-        public List<string> ObtenerCategorias()
+        public List<string> ObtenerClases()
         {
-            var categorias = new List<string>();
+            var lista = new List<string>();
             using (var conn = Conexion.Instance.GetConnection())
             {
                 conn.Open();
-                using (var cmd = new NpgsqlCommand("SELECT DISTINCT Categoria FROM Productos WHERE Categoria IS NOT NULL AND Categoria <> '' ORDER BY Categoria", conn))
+                using (var cmd = new NpgsqlCommand("SELECT Nombre FROM Clases ORDER BY Nombre", conn))
                 using (var reader = cmd.ExecuteReader())
                 {
                     while (reader.Read())
-                        categorias.Add(reader.GetString(0));
+                        lista.Add(reader.GetString(0));
                 }
             }
-            return categorias;
+            return lista;
         }
 
-        public List<string> ObtenerClasificaciones(string categoria)
+        public List<string> ObtenerSubclases(string clase)
         {
-            var clasificaciones = new List<string>();
+            var lista = new List<string>();
             using (var conn = Conexion.Instance.GetConnection())
             {
                 conn.Open();
-                using (var cmd = new NpgsqlCommand("SELECT DISTINCT Clasificacion FROM Productos WHERE (@categoria = '' OR Categoria = @categoria) AND Clasificacion IS NOT NULL AND Clasificacion <> '' ORDER BY Clasificacion", conn))
+                using (var cmd = new NpgsqlCommand("SELECT s.Nombre FROM Subclases s JOIN Clases c ON s.ClaseId = c.Id WHERE (@clase = '' OR c.Nombre = @clase) ORDER BY s.Nombre", conn))
                 {
-                    cmd.Parameters.AddWithValue("categoria", categoria == "Todas" ? "" : (categoria ?? ""));
+                    cmd.Parameters.AddWithValue("clase", clase == "Todas" ? "" : (clase ?? ""));
                     using (var reader = cmd.ExecuteReader())
                     {
                         while (reader.Read())
-                            clasificaciones.Add(reader.GetString(0));
+                            lista.Add(reader.GetString(0));
                     }
                 }
             }
-            return clasificaciones;
+            return lista;
         }
 
-        public List<string> ObtenerDetalles(string categoria, string clasificacion)
+        public List<string> ObtenerMarcas(string clase, string subclase)
         {
-            var detalles = new List<string>();
+            var lista = new List<string>();
             using (var conn = Conexion.Instance.GetConnection())
             {
                 conn.Open();
-                using (var cmd = new NpgsqlCommand("SELECT DISTINCT Detalle FROM Productos WHERE (@categoria = '' OR Categoria = @categoria) AND (@clasificacion = '' OR Clasificacion = @clasificacion) AND Detalle IS NOT NULL AND Detalle <> '' ORDER BY Detalle", conn))
+                using (var cmd = new NpgsqlCommand("SELECT m.Nombre FROM Marcas m JOIN Clases c ON m.ClaseId = c.Id WHERE (@clase = '' OR c.Nombre = @clase) ORDER BY m.Nombre", conn))
                 {
-                    cmd.Parameters.AddWithValue("categoria", categoria == "Todas" ? "" : (categoria ?? ""));
-                    cmd.Parameters.AddWithValue("clasificacion", clasificacion == "Todas" ? "" : (clasificacion ?? ""));
+                    cmd.Parameters.AddWithValue("clase", clase == "Todas" ? "" : (clase ?? ""));
                     using (var reader = cmd.ExecuteReader())
                     {
                         while (reader.Read())
-                            detalles.Add(reader.GetString(0));
+                            lista.Add(reader.GetString(0));
                     }
                 }
             }
-            return detalles;
+            return lista;
         }
 
-        public List<Producto> BuscarPorCategoria(string categoria)
+        public List<Producto> BuscarPorNuevosFiltros(string clase, string subclase, string marca, string tipo)
         {
-            return BuscarPorFiltros(categoria, "Todas", "Todos");
-        }
-
-        public List<Producto> BuscarPorFiltros(string categoria, string clasificacion, string detalle)
-        {
-            if ((string.IsNullOrEmpty(categoria) || categoria == "Todas") &&
-                (string.IsNullOrEmpty(clasificacion) || clasificacion == "Todas") &&
-                (string.IsNullOrEmpty(detalle) || detalle == "Todos"))
-                return ObtenerTodos();
-
             var lista = new List<Producto>();
             using (var conn = Conexion.Instance.GetConnection())
             {
                 conn.Open();
-                using (var cmd = new NpgsqlCommand(SelectProductos + " WHERE (@c = '' OR Categoria = @c) AND (@cl = '' OR Clasificacion = @cl) AND (@d = '' OR Detalle = @d) ORDER BY Nombre", conn))
+                using (var cmd = new NpgsqlCommand(SelectProductos + " WHERE (@c = '' OR p.Clase = @c) AND (@s = '' OR p.Subclase = @s) AND (@m = '' OR p.Marca = @m) ORDER BY p.Nombre", conn))
                 {
-                    cmd.Parameters.AddWithValue("c", categoria == "Todas" ? "" : (categoria ?? ""));
-                    cmd.Parameters.AddWithValue("cl", clasificacion == "Todas" ? "" : (clasificacion ?? ""));
-                    cmd.Parameters.AddWithValue("d", detalle == "Todos" ? "" : (detalle ?? ""));
+                    cmd.Parameters.AddWithValue("c", clase == "Todas" ? "" : (clase ?? ""));
+                    cmd.Parameters.AddWithValue("s", subclase == "Todas" ? "" : (subclase ?? ""));
+                    cmd.Parameters.AddWithValue("m", marca == "Todas" ? "" : (marca ?? ""));
                     using (var reader = cmd.ExecuteReader())
                     {
                         while (reader.Read())
@@ -240,15 +217,17 @@ ON CONFLICT (CodigoBarras) WHERE CodigoBarras IS NOT NULL AND CodigoBarras <> ''
             {
                 Id = reader.GetInt32(0),
                 Nombre = reader.GetString(1),
-                Categoria = reader.IsDBNull(2) ? "" : reader.GetString(2),
-                Clasificacion = reader.IsDBNull(3) ? "" : reader.GetString(3),
-                Detalle = reader.IsDBNull(4) ? "" : reader.GetString(4),
-                CodigoBarras = reader.IsDBNull(5) ? "" : reader.GetString(5),
-                PrecioCompra = reader.GetDecimal(6),
-                PrecioVenta = reader.GetDecimal(7),
-                Stock = reader.GetInt32(8),
-                StockMinimo = reader.GetInt32(9),
-                ImagePath = reader.IsDBNull(10) ? "" : reader.GetString(10)
+                CodigoBarras = reader.IsDBNull(2) ? "" : reader.GetString(2),
+                PrecioCompra = reader.GetDecimal(3),
+                PrecioVenta = reader.GetDecimal(4),
+                Stock = reader.GetInt32(5),
+                StockMinimo = reader.GetInt32(6),
+                ImagePath = reader.IsDBNull(7) ? "" : reader.GetString(7),
+                Clase = reader.IsDBNull(8) ? "" : reader.GetString(8),
+                Subclase = reader.IsDBNull(9) ? "" : reader.GetString(9),
+                Marca = reader.IsDBNull(10) ? "" : reader.GetString(10),
+                ProveedorId = reader.IsDBNull(11) ? (int?)null : reader.GetInt32(11),
+                ProveedorNombre = reader.IsDBNull(12) ? "" : reader.GetString(12)
             };
         }
 
@@ -257,20 +236,53 @@ ON CONFLICT (CodigoBarras) WHERE CodigoBarras IS NOT NULL AND CodigoBarras <> ''
             using (var conn = Conexion.Instance.GetConnection())
             {
                 conn.Open();
-                using (var cmd = new NpgsqlCommand(
-                    "INSERT INTO Productos (Nombre, Categoria, Clasificacion, Detalle, CodigoBarras, PrecioCompra, PrecioVenta, Stock, StockMinimo, ImagePath) VALUES (@n, @c, @cl, @d, @cb, @pc, @pv, @s, @sm, @i)", conn))
+                using (var trans = conn.BeginTransaction())
                 {
-                    cmd.Parameters.AddWithValue("n", p.Nombre);
-                    cmd.Parameters.AddWithValue("c", p.Categoria ?? "");
-                    cmd.Parameters.AddWithValue("cl", p.Clasificacion ?? "");
-                    cmd.Parameters.AddWithValue("d", p.Detalle ?? "");
-                    cmd.Parameters.AddWithValue("cb", p.CodigoBarras ?? "");
-                    cmd.Parameters.AddWithValue("pc", p.PrecioCompra);
-                    cmd.Parameters.AddWithValue("pv", p.PrecioVenta);
-                    cmd.Parameters.AddWithValue("s", p.Stock);
-                    cmd.Parameters.AddWithValue("sm", p.StockMinimo);
-                    cmd.Parameters.AddWithValue("i", p.ImagePath ?? "");
-                    return cmd.ExecuteNonQuery() > 0;
+                    try
+                    {
+                        int id = 0;
+                        using (var cmd = new NpgsqlCommand(
+                            @"INSERT INTO Productos (Nombre, CodigoBarras, PrecioCompra, PrecioVenta, Stock, StockMinimo, ImagePath, Clase, Subclase, Marca) 
+                              VALUES (@n, @cb, @pc, @pv, @s, @sm, @i, @cls, @sub, @mrc) RETURNING Id", conn, trans))
+                        {
+                            cmd.Parameters.AddWithValue("n", p.Nombre);
+                            cmd.Parameters.AddWithValue("cb", p.CodigoBarras ?? "");
+                            cmd.Parameters.AddWithValue("pc", p.PrecioCompra);
+                            cmd.Parameters.AddWithValue("pv", p.PrecioVenta);
+                            cmd.Parameters.AddWithValue("s", p.Stock);
+                            cmd.Parameters.AddWithValue("sm", p.StockMinimo);
+                            cmd.Parameters.AddWithValue("i", p.ImagePath ?? "");
+                            cmd.Parameters.AddWithValue("cls", p.Clase ?? "");
+                            cmd.Parameters.AddWithValue("sub", p.Subclase ?? "");
+                            cmd.Parameters.AddWithValue("mrc", p.Marca ?? "");
+                            id = Convert.ToInt32(cmd.ExecuteScalar());
+                        }
+
+                        if (p.ProveedorId.HasValue)
+                        {
+                            using (var cmdProv = new NpgsqlCommand("INSERT INTO Proveedor_Producto (ProveedorId, ProductoId) VALUES (@prov, @prod)", conn, trans))
+                            {
+                                cmdProv.Parameters.AddWithValue("prov", p.ProveedorId.Value);
+                                cmdProv.Parameters.AddWithValue("prod", id);
+                                cmdProv.ExecuteNonQuery();
+                            }
+                        }
+
+                        trans.Commit();
+                        p.Id = id;
+                        
+                        if (p.Stock <= p.StockMinimo)
+                        {
+                            RegistrarAlerta(p.Id, p.Stock, p.StockMinimo);
+                        }
+
+                        return true;
+                    }
+                    catch
+                    {
+                        trans.Rollback();
+                        return false;
+                    }
                 }
             }
         }
@@ -280,21 +292,65 @@ ON CONFLICT (CodigoBarras) WHERE CodigoBarras IS NOT NULL AND CodigoBarras <> ''
             using (var conn = Conexion.Instance.GetConnection())
             {
                 conn.Open();
-                using (var cmd = new NpgsqlCommand(
-                    "UPDATE Productos SET Nombre=@n, Categoria=@c, Clasificacion=@cl, Detalle=@d, CodigoBarras=@cb, PrecioCompra=@pc, PrecioVenta=@pv, Stock=@s, StockMinimo=@sm, ImagePath=@i WHERE Id=@id", conn))
+                using (var trans = conn.BeginTransaction())
                 {
-                    cmd.Parameters.AddWithValue("n", p.Nombre);
-                    cmd.Parameters.AddWithValue("c", p.Categoria ?? "");
-                    cmd.Parameters.AddWithValue("cl", p.Clasificacion ?? "");
-                    cmd.Parameters.AddWithValue("d", p.Detalle ?? "");
-                    cmd.Parameters.AddWithValue("cb", p.CodigoBarras ?? "");
-                    cmd.Parameters.AddWithValue("pc", p.PrecioCompra);
-                    cmd.Parameters.AddWithValue("pv", p.PrecioVenta);
-                    cmd.Parameters.AddWithValue("s", p.Stock);
-                    cmd.Parameters.AddWithValue("sm", p.StockMinimo);
-                    cmd.Parameters.AddWithValue("i", p.ImagePath ?? "");
-                    cmd.Parameters.AddWithValue("id", p.Id);
-                    return cmd.ExecuteNonQuery() > 0;
+                    try
+                    {
+                        using (var cmd = new NpgsqlCommand(
+                            @"UPDATE Productos 
+                              SET Nombre=@n, CodigoBarras=@cb, 
+                                  PrecioCompra=@pc, PrecioVenta=@pv, Stock=@s, StockMinimo=@sm, ImagePath=@i,
+                                  Clase=@cls, Subclase=@sub, Marca=@mrc
+                              WHERE Id=@id", conn, trans))
+                        {
+                            cmd.Parameters.AddWithValue("n", p.Nombre);
+                            cmd.Parameters.AddWithValue("cb", p.CodigoBarras ?? "");
+                            cmd.Parameters.AddWithValue("pc", p.PrecioCompra);
+                            cmd.Parameters.AddWithValue("pv", p.PrecioVenta);
+                            cmd.Parameters.AddWithValue("s", p.Stock);
+                            cmd.Parameters.AddWithValue("sm", p.StockMinimo);
+                            cmd.Parameters.AddWithValue("i", p.ImagePath ?? "");
+                            cmd.Parameters.AddWithValue("cls", (object)p.Clase ?? DBNull.Value);
+                            cmd.Parameters.AddWithValue("sub", (object)p.Subclase ?? DBNull.Value);
+                            cmd.Parameters.AddWithValue("mrc", (object)p.Marca ?? DBNull.Value);
+                            cmd.Parameters.AddWithValue("id", p.Id);
+                            cmd.ExecuteNonQuery();
+                        }
+
+                        using (var cmdDel = new NpgsqlCommand("DELETE FROM Proveedor_Producto WHERE ProductoId = @prod", conn, trans))
+                        {
+                            cmdDel.Parameters.AddWithValue("prod", p.Id);
+                            cmdDel.ExecuteNonQuery();
+                        }
+
+                        if (p.ProveedorId.HasValue)
+                        {
+                            using (var cmdProv = new NpgsqlCommand("INSERT INTO Proveedor_Producto (ProveedorId, ProductoId) VALUES (@prov, @prod)", conn, trans))
+                            {
+                                cmdProv.Parameters.AddWithValue("prov", p.ProveedorId.Value);
+                                cmdProv.Parameters.AddWithValue("prod", p.Id);
+                                cmdProv.ExecuteNonQuery();
+                            }
+                        }
+
+                        trans.Commit();
+
+                        if (p.Stock <= p.StockMinimo)
+                        {
+                            RegistrarAlerta(p.Id, p.Stock, p.StockMinimo);
+                        }
+                        else
+                        {
+                            AutoResolverAlertas(p.Id, p.Stock, p.StockMinimo);
+                        }
+
+                        return true;
+                    }
+                    catch
+                    {
+                        trans.Rollback();
+                        return false;
+                    }
                 }
             }
         }
@@ -317,11 +373,112 @@ ON CONFLICT (CodigoBarras) WHERE CodigoBarras IS NOT NULL AND CodigoBarras <> ''
             using (var conn = Conexion.Instance.GetConnection())
             {
                 conn.Open();
+                int stockMinimo = 10;
+                using (var cmdMin = new NpgsqlCommand("SELECT StockMinimo FROM Productos WHERE Id = @id", conn))
+                {
+                    cmdMin.Parameters.AddWithValue("id", id);
+                    var val = cmdMin.ExecuteScalar();
+                    if (val != null && val != DBNull.Value)
+                        stockMinimo = Convert.ToInt32(val);
+                }
+
                 using (var cmd = new NpgsqlCommand("UPDATE Productos SET Stock = @s WHERE Id = @id", conn))
                 {
                     cmd.Parameters.AddWithValue("s", nuevoStock);
                     cmd.Parameters.AddWithValue("id", id);
+                    bool ok = cmd.ExecuteNonQuery() > 0;
+                    if (ok)
+                    {
+                        if (nuevoStock <= stockMinimo)
+                            RegistrarAlerta(id, nuevoStock, stockMinimo);
+                        else
+                            AutoResolverAlertas(id, nuevoStock, stockMinimo);
+                    }
+                    return ok;
+                }
+            }
+        }
+
+        public List<AlertaStock> ObtenerAlertasActivas()
+        {
+            var lista = new List<AlertaStock>();
+            using (var conn = Conexion.Instance.GetConnection())
+            {
+                conn.Open();
+                string query = @"
+                    SELECT a.Id, a.ProductoId, p.Nombre, a.StockActual, a.StockMinimo, a.FechaGeneracion, a.Resuelta
+                    FROM AlertasStock a
+                    JOIN Productos p ON a.ProductoId = p.Id
+                    WHERE a.Resuelta = FALSE
+                    ORDER BY a.FechaGeneracion DESC";
+                using (var cmd = new NpgsqlCommand(query, conn))
+                using (var reader = cmd.ExecuteReader())
+                {
+                    while (reader.Read())
+                    {
+                        lista.Add(new AlertaStock
+                        {
+                            Id = reader.GetInt32(0),
+                            ProductoId = reader.GetInt32(1),
+                            ProductoNombre = reader.GetString(2),
+                            StockActual = reader.GetInt32(3),
+                            StockMinimo = reader.GetInt32(4),
+                            FechaGeneracion = reader.GetDateTime(5),
+                            Resuelta = reader.GetBoolean(6)
+                        });
+                    }
+                }
+            }
+            return lista;
+        }
+
+        public void RegistrarAlerta(int productoId, int stockActual, int stockMinimo)
+        {
+            using (var conn = Conexion.Instance.GetConnection())
+            {
+                conn.Open();
+                using (var cmdCheck = new NpgsqlCommand("SELECT COUNT(*) FROM AlertasStock WHERE ProductoId = @p AND Resuelta = FALSE", conn))
+                {
+                    cmdCheck.Parameters.AddWithValue("p", productoId);
+                    int count = Convert.ToInt32(cmdCheck.ExecuteScalar());
+                    if (count > 0) return;
+                }
+
+                using (var cmd = new NpgsqlCommand("INSERT INTO AlertasStock (ProductoId, StockActual, StockMinimo) VALUES (@p, @sa, @sm)", conn))
+                {
+                    cmd.Parameters.AddWithValue("p", productoId);
+                    cmd.Parameters.AddWithValue("sa", stockActual);
+                    cmd.Parameters.AddWithValue("sm", stockMinimo);
+                    cmd.ExecuteNonQuery();
+                }
+            }
+        }
+
+        public bool ResolverAlerta(int alertaId)
+        {
+            using (var conn = Conexion.Instance.GetConnection())
+            {
+                conn.Open();
+                using (var cmd = new NpgsqlCommand("UPDATE AlertasStock SET Resuelta = TRUE, FechaResolucion = CURRENT_TIMESTAMP WHERE Id = @id", conn))
+                {
+                    cmd.Parameters.AddWithValue("id", alertaId);
                     return cmd.ExecuteNonQuery() > 0;
+                }
+            }
+        }
+
+        public void AutoResolverAlertas(int productoId, int stockNuevo, int stockMinimo)
+        {
+            if (stockNuevo > stockMinimo)
+            {
+                using (var conn = Conexion.Instance.GetConnection())
+                {
+                    conn.Open();
+                    using (var cmd = new NpgsqlCommand("UPDATE AlertasStock SET Resuelta = TRUE, FechaResolucion = CURRENT_TIMESTAMP WHERE ProductoId = @p AND Resuelta = FALSE", conn))
+                    {
+                        cmd.Parameters.AddWithValue("p", productoId);
+                        cmd.ExecuteNonQuery();
+                    }
                 }
             }
         }
